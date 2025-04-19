@@ -9,6 +9,7 @@ const candidates: Record<string, Candidate> = {
     party: "Australian Labor Party",
     email: "sarah.johnson@example.com",
     imageUrl: "https://randomuser.me/api/portraits/women/42.jpg",
+    chamber: "house",
     policies: [
       {
         topic: "Climate Change",
@@ -33,6 +34,7 @@ const candidates: Record<string, Candidate> = {
     party: "Liberal Party of Australia",
     email: "michael.thompson@example.com",
     imageUrl: "https://randomuser.me/api/portraits/men/32.jpg",
+    chamber: "house",
     policies: [
       {
         topic: "Economy",
@@ -57,6 +59,7 @@ const candidates: Record<string, Candidate> = {
     party: "Australian Greens",
     email: "jessica.lee@example.com",
     imageUrl: "https://randomuser.me/api/portraits/women/65.jpg",
+    chamber: "senate",
     policies: [
       {
         topic: "Climate Change",
@@ -81,6 +84,7 @@ const candidates: Record<string, Candidate> = {
     party: "Independent",
     email: "robert.wilson@example.com",
     imageUrl: "https://randomuser.me/api/portraits/men/52.jpg",
+    chamber: "senate",
     policies: [
       {
         topic: "Local Infrastructure",

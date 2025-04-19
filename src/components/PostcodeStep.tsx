@@ -161,7 +161,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
             party: candidate.partyBallotName || 'Independent',
             email: "contact@example.com", // Placeholder email
             policies: [],
-            chamber: "house",
+            chamber: "house" as ChamberType,
             division: candidate.division,
           })) : []),
           ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
@@ -170,7 +170,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
             party: candidate.partyBallotName || 'Independent',
             email: "contact@example.com", // Placeholder email
             policies: [],
-            chamber: "senate",
+            chamber: "senate" as ChamberType,
             state: candidate.state,
           })) : []),
         ],

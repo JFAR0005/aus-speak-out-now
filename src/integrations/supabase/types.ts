@@ -13,7 +13,7 @@ export type Database = {
         Row: {
           ballotGivenName: string | null
           ballotPosition: string | null
-          division: string | null
+          electorate: string | null
           partyBallotName: string | null
           state: string | null
           surname: string | null
@@ -21,7 +21,7 @@ export type Database = {
         Insert: {
           ballotGivenName?: string | null
           ballotPosition?: string | null
-          division?: string | null
+          electorate?: string | null
           partyBallotName?: string | null
           state?: string | null
           surname?: string | null
@@ -29,7 +29,7 @@ export type Database = {
         Update: {
           ballotGivenName?: string | null
           ballotPosition?: string | null
-          division?: string | null
+          electorate?: string | null
           partyBallotName?: string | null
           state?: string | null
           surname?: string | null

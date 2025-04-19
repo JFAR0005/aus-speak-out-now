@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -71,7 +70,6 @@ export const usePostcodeSearch = (
       console.log("Unique electorates:", uniqueElectorates);
       console.log("Unique states:", uniqueStates);
 
-      // Create a fallback/mock House candidate if none is found
       const primaryMapping = mappingData[0];
       let houseData: any[] = [];
       let senateData: any[] = [];
@@ -80,7 +78,7 @@ export const usePostcodeSearch = (
         const { data: houseResults, error: houseError } = await supabase
           .from('House of Representatives Candidates')
           .select('*')
-          .in('division', uniqueElectorates);
+          .in('electorate', uniqueElectorates);
 
         if (houseError) throw houseError;
         
@@ -88,13 +86,12 @@ export const usePostcodeSearch = (
           houseData = houseResults;
         } else {
           console.log("No House candidates found from database. Adding a fallback candidate for testing.");
-          // Add a fallback/mock candidate for the Sydney electorate if needed for testing
           if (uniqueElectorates.includes("Sydney")) {
             houseData = [{
               ballotGivenName: "Tanya",
               surname: "Plibersek",
               partyBallotName: "Australian Labor Party",
-              division: "Sydney",
+              electorate: "Sydney",
               state: primaryMapping.state,
               ballotPosition: "1"
             }];
@@ -114,7 +111,6 @@ export const usePostcodeSearch = (
           senateData = senateResults;
         } else {
           console.log("No Senate candidates found from database. Adding fallback candidates for testing.");
-          // Add fallback/mock Senate candidates if needed for testing
           if (uniqueStates.includes("NSW")) {
             senateData = [{
               ballotGivenName: "Jane",
@@ -142,7 +138,7 @@ export const usePostcodeSearch = (
             email: "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,
-            division: candidate.division,
+            division: candidate.electorate,
           })) : []),
           ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
             id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,

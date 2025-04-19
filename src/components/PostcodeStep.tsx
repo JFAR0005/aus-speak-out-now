@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle } from "lucide-react";
-import { lookupPostcode } from "../data/mockData";
+import { Search, AlertCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Electorate } from "../types";
 
 interface PostcodeStepProps {
@@ -20,6 +20,8 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [houseResults, setHouseResults] = useState<any[]>([]);
+  const [senateResults, setSenateResults] = useState<any[]>([]);
 
   const handleSearch = async () => {
     // Validate postcode
@@ -30,25 +32,68 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
 
     setIsSearching(true);
     setError(null);
+    setHouseResults([]);
+    setSenateResults([]);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const result = lookupPostcode(postcode);
+      // Fetch House of Representatives candidates
+      const { data: houseData, error: houseError } = await supabase
+        .from('House of Representatives Candidates')
+        .select('*')
+        .eq('division', mapPostcodeToElectorate(postcode));
 
-      if (!result || result.electorates.length === 0) {
-        setError("No electorates found for this postcode");
+      if (houseError) throw houseError;
+
+      // Fetch Senate candidates
+      const { data: senateData, error: senateError } = await supabase
+        .from('Senate Candidates')
+        .select('*')
+        .eq('state', mapPostcodeToState(postcode));
+
+      if (senateError) throw senateError;
+
+      setHouseResults(houseData || []);
+      setSenateResults(senateData || []);
+
+      if ((!houseData || houseData.length === 0) && (!senateData || senateData.length === 0)) {
+        setError("No candidates found for this postcode");
         return;
       }
 
-      // For this demo, we'll just use the first electorate
-      onContinue(result.electorates[0]);
+      // For compatibility with existing code, create an electorate object
+      const electorate: Electorate = {
+        id: "1",
+        name: mapPostcodeToElectorate(postcode),
+        state: mapPostcodeToState(postcode),
+        candidates: [
+          ...(houseData || []).map((candidate) => ({
+            id: `house-${candidate.ballotPosition}`,
+            name: `${candidate.ballotGivenName} ${candidate.surname}`,
+            party: candidate.partyBallotName,
+            email: "contact@example.com", // This would need to be added to the database
+            policies: [], // This would need to be added to the database
+          })),
+        ],
+      };
+
+      onContinue(electorate);
     } catch (err) {
-      setError("Error searching for postcode. Please try again.");
-      console.error("Error searching postcode:", err);
+      console.error("Error searching candidates:", err);
+      setError("Error searching for candidates. Please try again.");
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // These functions would need to be replaced with actual mapping logic
+  const mapPostcodeToElectorate = (postcode: string) => {
+    // This is a placeholder mapping
+    return "Melbourne";
+  };
+
+  const mapPostcodeToState = (postcode: string) => {
+    // This is a placeholder mapping
+    return "VIC";
   };
 
   return (
@@ -77,7 +122,9 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
           />
           <Button onClick={handleSearch} disabled={isSearching}>
             {isSearching ? (
-              "Searching..."
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching...
+              </>
             ) : (
               <>
                 <Search className="mr-2 h-4 w-4" /> Find
@@ -91,6 +138,38 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+
+        {(houseResults.length > 0 || senateResults.length > 0) && (
+          <div className="mt-6 space-y-4">
+            {houseResults.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">House of Representatives Candidates</h3>
+                <div className="bg-white rounded-lg shadow divide-y">
+                  {houseResults.map((candidate) => (
+                    <div key={candidate.ballotPosition} className="p-4">
+                      <div className="font-medium">{candidate.ballotGivenName} {candidate.surname}</div>
+                      <div className="text-sm text-gray-600">{candidate.partyBallotName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {senateResults.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Senate Candidates</h3>
+                <div className="bg-white rounded-lg shadow divide-y">
+                  {senateResults.map((candidate) => (
+                    <div key={candidate.ballotPosition} className="p-4">
+                      <div className="font-medium">{candidate.ballotGivenName} {candidate.surname}</div>
+                      <div className="text-sm text-gray-600">{candidate.partyBallotName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="bg-muted/50 p-4 rounded-lg">

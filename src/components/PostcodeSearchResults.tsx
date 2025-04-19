@@ -63,7 +63,7 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
                       {candidate.ballotGivenName || ''} {candidate.surname || ''}
                     </div>
                     <div className="text-sm text-gray-600">{candidate.partyBallotName || 'Independent'}</div>
-                    <div className="text-sm text-gray-500">Division: {candidate.division}</div>
+                    <div className="text-sm text-gray-500">Electorate: {candidate.electorate}</div>
                   </div>
                 ))}
               </div>
@@ -87,6 +87,16 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {mappings.length > 0 && houseResults.length === 0 && senateResults.length === 0 && (
+        <Alert variant="default" className="mt-4 bg-yellow-50 border-yellow-200">
+          <Info className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="text-yellow-700">
+            We found your location, but couldn't find any candidates for that area. 
+            Please try another postcode or suburb nearby.
+          </AlertDescription>
+        </Alert>
       )}
     </>
   );

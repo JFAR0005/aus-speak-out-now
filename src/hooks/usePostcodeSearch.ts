@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -75,12 +76,18 @@ export const usePostcodeSearch = (
       let senateData: any[] = [];
 
       if (chamberType === "house" || chamberType === null) {
+        console.log("Searching for House candidates in electorates:", uniqueElectorates);
         const { data: houseResults, error: houseError } = await supabase
           .from('House of Representatives Candidates')
           .select('*')
           .in('electorate', uniqueElectorates);
 
-        if (houseError) throw houseError;
+        if (houseError) {
+          console.error("House candidates query error:", houseError);
+          throw houseError;
+        }
+        
+        console.log("House candidates found:", houseResults);
         
         if (houseResults && houseResults.length > 0) {
           houseData = houseResults;
@@ -100,12 +107,18 @@ export const usePostcodeSearch = (
       }
 
       if (chamberType === "senate" || chamberType === null) {
+        console.log("Searching for Senate candidates in states:", uniqueStates);
         const { data: senateResults, error: senateError } = await supabase
           .from('Senate Candidates')
           .select('*')
           .in('state', uniqueStates);
 
-        if (senateError) throw senateError;
+        if (senateError) {
+          console.error("Senate candidates query error:", senateError);
+          throw senateError;
+        }
+        
+        console.log("Senate candidates found:", senateResults);
         
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
@@ -138,7 +151,7 @@ export const usePostcodeSearch = (
             email: "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,
-            division: candidate.electorate,
+            division: candidate.electorate, // Use electorate (formerly division)
           })) : []),
           ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
             id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,

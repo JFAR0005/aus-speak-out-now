@@ -80,18 +80,28 @@ export const usePostcodeSearch = (
       if (chamberType === "house" || chamberType === null) {
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // Try with case-insensitive search for electorate
-        const houseQuery = supabase
+        // Fix: Use ilike filter for case-insensitive matching
+        let houseQuery = supabase
           .from('House of Representatives Candidates')
           .select('*');
-          
-        // Use OR conditions for each electorate with case-insensitive matching
-        const electorateQueries = uniqueElectorates.map(electorate => 
-          `electorate.ilike.${electorate}`
-        );
         
-        const { data: houseResults, error: houseError } = await houseQuery
-          .or(electorateQueries.join(','));
+        // Use proper filter syntax for multiple values
+        if (uniqueElectorates.length === 1) {
+          // For a single electorate, use ilike for case-insensitive matching
+          houseQuery = houseQuery.ilike('electorate', uniqueElectorates[0]);
+        } else {
+          // For multiple electorates, build a more complex query with or conditions
+          const filters = uniqueElectorates.map((electorate, index) => {
+            if (index === 0) return `electorate.ilike.${electorate}`;
+            return `electorate.ilike.${electorate}`;
+          });
+          
+          if (filters.length > 0) {
+            houseQuery = houseQuery.or(filters.join(','));
+          }
+        }
+        
+        const { data: houseResults, error: houseError } = await houseQuery;
 
         if (houseError) {
           console.error("House candidates query error:", houseError);
@@ -104,7 +114,7 @@ export const usePostcodeSearch = (
           houseData = houseResults;
         } else {
           console.log("No House candidates found from database for electorates:", uniqueElectorates);
-          // Removed fallback candidates as requested
+          // No fallback candidates
         }
       }
 
@@ -126,7 +136,7 @@ export const usePostcodeSearch = (
           senateData = senateResults;
         } else {
           console.log("No Senate candidates found from database for states:", uniqueStates);
-          // Removed fallback candidates as requested
+          // No fallback candidates
         }
       }
 

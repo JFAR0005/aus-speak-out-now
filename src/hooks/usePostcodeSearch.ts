@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -44,7 +45,9 @@ export const usePostcodeSearch = (
       
       if (/^\d{4}$/.test(postcode)) {
         // If input is a 4-digit postcode
-        mappingQuery = mappingQuery.eq('postcode', postcode);
+        // FIX: Convert string postcode to number for the database query
+        const numericPostcode = Number(postcode);
+        mappingQuery = mappingQuery.eq('postcode', numericPostcode);
         debugInfo.steps.push({ step: "Searching by exact postcode", query: postcode });
       } 
       else if (postcode.length >= 3) {
@@ -245,14 +248,22 @@ export const usePostcodeSearch = (
       // Step A: Add a raw SQL query for additional debugging if no candidates were found
       if ((chamberType === "house" || chamberType === null) && houseData.length === 0) {
         const targetElectorate = uniqueElectorates[0];
-        const { data: rawQueryData, error: rawQueryError } = await supabase
-          .rpc('debug_house_candidates', { electorate_param: targetElectorate });
-          
-        if (!rawQueryError) {
+        // FIX: Fixed the targetElectorate being passed as a parameter
+        try {
+          const { data: rawQueryData, error: rawQueryError } = await supabase
+            .rpc('debug_house_candidates', { electorate_param: targetElectorate });
+            
+          if (!rawQueryError) {
+            debugInfo.steps.push({
+              step: "Raw SQL query for debugging",
+              targetElectorate,
+              results: rawQueryData
+            });
+          }
+        } catch (rpcError) {
           debugInfo.steps.push({
-            step: "Raw SQL query for debugging",
-            targetElectorate,
-            results: rawQueryData
+            step: "RPC function not available",
+            error: rpcError
           });
         }
       }

@@ -11,6 +11,21 @@ export const generateLetters = async (
 ): Promise<Record<string, string>> => {
   let documentInsights = '';
   
+  // If we're getting a placeholder like "your previous concern", use a meaningful default
+  // This prevents generic empty letters during regeneration
+  if (concern === "your previous concern" || !concern.trim()) {
+    // Check if we have a stored concern in sessionStorage
+    const storedConcern = sessionStorage.getItem('userLetterConcern');
+    if (storedConcern) {
+      concern = storedConcern;
+    } else {
+      concern = "important policy matters affecting our community";
+    }
+  } else {
+    // Store valid concerns for future regenerations
+    sessionStorage.setItem('userLetterConcern', concern);
+  }
+  
   try {
     if (uploadedContent) {
       return new Promise((resolve) => {

@@ -167,6 +167,11 @@ const MessageStep: React.FC<MessageStepProps> = ({
       return;
     }
 
+    // Store the user concern in session storage for potential regeneration later
+    if (userConcern.trim()) {
+      sessionStorage.setItem('userLetterConcern', userConcern.trim());
+    }
+
     setIsGenerating(true);
     setGenerationProgress(0);
     

@@ -17,25 +17,68 @@ export const generateSubjectLine = (concern: string): string => {
     "mental": "Mental Health Support and Healthcare Integration",
     "agriculture": "Agricultural Policy and Regional Development",
     "water": "Water Management and Environmental Protection",
+    "employment": "Job Creation and Employment Security Measures",
+    "taxation": "Tax Reform and Economic Fairness",
+    "infrastructure": "Infrastructure Development and Community Planning",
+    "technology": "Digital Innovation and Technology Policy",
+    "defence": "National Defence Strategy and Security",
+    "foreign": "Foreign Affairs and International Relations",
+    "aged": "Aged Care Reform and Elder Support",
+    "childcare": "Childcare Accessibility and Affordability",
+    "election": "Electoral Reform and Democratic Processes",
+    "corruption": "Government Accountability and Anti-Corruption Measures",
+    "environment": "Environmental Conservation and Biodiversity Protection",
+    "wage": "Wage Growth and Fair Work Conditions",
+    "housing": "Affordable Housing and Rental Market Reform",
+    "media": "Media Diversity and Public Broadcasting",
   };
   
-  // Check for topic matches in the concern text
+  // Function to extract meaningful keywords from concern text
+  const extractKeywords = (text: string): string[] => {
+    // Remove common filler words
+    const fillerWords = ['i', 'am', 'is', 'are', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'about', 'of', 'by', 'as', 'what', 'when', 'where', 'who', 'why', 'how', 'this', 'that', 'these', 'those'];
+    
+    // Split the text into words, convert to lowercase, remove punctuation
+    return text.toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter(word => word.length > 3 && !fillerWords.includes(word));
+  };
+  
+  // Check for direct topic matches in the concern text
   for (const [key, title] of Object.entries(topics)) {
     if (concern.toLowerCase().includes(key)) {
       return `Re: ${title}`;
     }
   }
   
-  // If no specific topic matches, create a more meaningful subject
-  // by extracting key phrases from the concern
-  const concernWords = concern.split(' ');
+  // Extract keywords from the concern
+  const keywords = extractKeywords(concern);
   
-  // Try to find a meaningful phrase of 3-5 words if the concern is long enough
-  if (concernWords.length >= 5) {
-    const keyPhrase = concernWords.slice(0, Math.min(5, concernWords.length)).join(' ');
-    return `Re: Policy Position on ${keyPhrase}`;
+  // If we have keywords, use them to build a subject
+  if (keywords.length > 0) {
+    // Get the 3 most significant words (assuming longer words are more significant)
+    const significantWords = keywords
+      .sort((a, b) => b.length - a.length)
+      .slice(0, 3);
+    
+    // Capitalize first letter of each word
+    const capitalizedWords = significantWords.map(
+      word => word.charAt(0).toUpperCase() + word.slice(1)
+    );
+    
+    return `Re: Policy Position on ${capitalizedWords.join(' ')}`;
   }
   
-  // For short concerns, use the entire concern
-  return `Re: Policy Position on ${concern}`;
+  // For short or unprocessable concerns, create a more generic but still relevant subject
+  const concernWords = concern.split(' ');
+  
+  // For very short concerns, use a direct approach
+  if (concernWords.length <= 5) {
+    return `Re: Constituent Outreach on ${concern}`;
+  }
+  
+  // For longer concerns, extract a meaningful phrase
+  const keyPhrase = concernWords.slice(0, Math.min(5, concernWords.length)).join(' ');
+  return `Re: Policy Position on ${keyPhrase}`;
 };

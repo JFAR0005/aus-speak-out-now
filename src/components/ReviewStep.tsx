@@ -184,6 +184,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     }));
     
     try {
+      // Get the original user concern from session storage
+      const originalConcern = sessionStorage.getItem('userLetterConcern') || "important policy matters";
+      
       // Use setTimeout to prevent UI blocking
       setTimeout(async () => {
         try {
@@ -192,7 +195,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             if (candidate) {
               const letters = await generateLetters(
                 [candidate],
-                "your previous concern",
+                originalConcern, // Use the original concern stored in session storage
                 null,
                 regenerateTone
               );

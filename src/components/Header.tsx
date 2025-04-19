@@ -1,16 +1,18 @@
 
 import React from "react";
-import { MapPin } from "lucide-react";
 
 const Header: React.FC = () => {
   return (
     <header className="bg-aus-green text-white w-full py-4 px-6 md:px-8 shadow-md">
       <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-6 w-6 text-aus-gold" />
-          <h1 className="text-xl md:text-2xl font-bold">Activate Australia</h1>
+        <div className="flex items-center space-x-4">
+          <img 
+            src="/lovable-uploads/1c95a376-5397-442f-8c2a-7ceaccdb900f.png" 
+            alt="Australia Speak Out Now Logo" 
+            className="h-12 w-auto"
+          />
         </div>
-        <p className="hidden md:block text-sm">Politician Contact Tool</p>
+        <p className="hidden md:block text-sm">Free Political Action Platform</p>
       </div>
     </header>
   );

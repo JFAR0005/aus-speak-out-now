@@ -1,22 +1,27 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle, Loader2, Info } from "lucide-react";
+import { Search, AlertCircle, Loader2, Info, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Electorate } from "../types";
+import { Electorate, ChamberType } from "../types";
 import { useToast } from "@/hooks/use-toast";
 
 interface PostcodeStepProps {
+  chamberType: ChamberType | null;
   postcode: string;
   setPostcode: (postcode: string) => void;
   onContinue: (electorate: Electorate) => void;
+  onPrevious: () => void;
 }
 
 const PostcodeStep: React.FC<PostcodeStepProps> = ({
+  chamberType,
   postcode,
   setPostcode,
   onContinue,
+  onPrevious,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -26,10 +31,25 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
   const [mappings, setMappings] = useState<any[]>([]);
   const { toast } = useToast();
 
+  const getPlaceholderText = () => {
+    if (chamberType === "senate") {
+      return "Enter your postcode, suburb, or state";
+    } else {
+      return "Enter your postcode or suburb";
+    }
+  };
+
+  const getPromptText = () => {
+    if (chamberType === "senate") {
+      return "Enter your location to find Senate candidates for your state";
+    } else {
+      return "Enter your location to find House of Representatives candidates for your electorate";
+    }
+  };
+
   const handleSearch = async () => {
-    // Validate postcode
-    if (!postcode.trim() || !/^\d{4}$/.test(postcode)) {
-      setError("Please enter a valid 4-digit Australian postcode");
+    if (!postcode.trim()) {
+      setError("Please enter a location to search");
       return;
     }
 
@@ -41,16 +61,38 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     setMappings([]);
 
     try {
-      // First, get all mappings for the postcode
-      const { data: mappingData, error: mappingError } = await supabase
-        .from('postcode_mappings')
-        .select('*')
-        .eq('postcode', postcode);
+      console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
+      
+      // First, get all mappings for the input (postcode, suburb, or state)
+      let mappingQuery = supabase.from('postcode_mappings').select('*');
+      
+      // Try to match with postcode first
+      if (/^\d{4}$/.test(postcode)) {
+        mappingQuery = mappingQuery.eq('postcode', postcode);
+      } 
+      // Then try a partial match with locality (suburb)
+      else if (postcode.length >= 3) {
+        // First try exact state match
+        const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
+        const upperInput = postcode.toUpperCase();
+        
+        if (stateAbbreviations.includes(upperInput)) {
+          mappingQuery = mappingQuery.eq('state', upperInput);
+        } else {
+          // Try partial match with locality
+          mappingQuery = mappingQuery.ilike('locality', `%${postcode}%`);
+        }
+      }
 
-      if (mappingError) throw mappingError;
+      const { data: mappingData, error: mappingError } = await mappingQuery;
+
+      if (mappingError) {
+        console.error("Mapping error:", mappingError);
+        throw mappingError;
+      }
 
       if (!mappingData || mappingData.length === 0) {
-        setError("This postcode is not in our database. Please try another postcode.");
+        setError("We couldn't find any candidates based on that input. Please check your postcode, suburb, or try a nearby area.");
         setIsSearching(false);
         return;
       }
@@ -61,74 +103,98 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
       // Get unique electorates and states from mappings
       const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
+      
+      console.log("Unique electorates:", uniqueElectorates);
+      console.log("Unique states:", uniqueStates);
 
-      // Fetch House of Representatives candidates for all matched electorates
-      const { data: houseData, error: houseError } = await supabase
-        .from('House of Representatives Candidates')
-        .select('*')
-        .in('division', uniqueElectorates);
+      let houseData: any[] = [];
+      let senateData: any[] = [];
 
-      if (houseError) {
-        console.error("House candidates error:", houseError);
-        throw houseError;
+      // Fetch appropriate candidates based on chamber selection
+      if (chamberType === "house" || chamberType === null) {
+        // Fetch House of Representatives candidates for all matched electorates
+        const { data: houseResults, error: houseError } = await supabase
+          .from('House of Representatives Candidates')
+          .select('*')
+          .in('division', uniqueElectorates);
+
+        if (houseError) {
+          console.error("House candidates error:", houseError);
+          throw houseError;
+        }
+
+        console.log("House candidates response:", houseResults);
+        if (houseResults) houseData = houseResults;
       }
 
-      console.log("House candidates response:", houseData);
+      if (chamberType === "senate" || chamberType === null) {
+        // Fetch Senate candidates for the state(s)
+        const { data: senateResults, error: senateError } = await supabase
+          .from('Senate Candidates')
+          .select('*')
+          .in('state', uniqueStates);
 
-      // Fetch Senate candidates for the state(s)
-      const { data: senateData, error: senateError } = await supabase
-        .from('Senate Candidates')
-        .select('*')
-        .in('state', uniqueStates);
+        if (senateError) {
+          console.error("Senate candidates error:", senateError);
+          throw senateError;
+        }
 
-      if (senateError) {
-        console.error("Senate candidates error:", senateError);
-        throw senateError;
+        console.log("Senate candidates response:", senateResults);
+        if (senateResults) senateData = senateResults;
       }
 
-      console.log("Senate candidates response:", senateData);
-
-      setHouseResults(houseData || []);
-      setSenateResults(senateData || []);
+      setHouseResults(houseData);
+      setSenateResults(senateData);
 
       // Use the first mapping for the electorate object
       const primaryMapping = mappingData[0];
       
-      // Create the electorate object with both House and Senate candidates
+      // Create the electorate object with appropriate candidates
       const electorate: Electorate = {
         id: postcode,
         name: primaryMapping.electorate,
         state: primaryMapping.state,
         candidates: [
-          ...(houseData || []).map((candidate) => ({
+          ...(chamberType !== "senate" ? (houseData || []).map((candidate) => ({
             id: `house-${candidate.ballotPosition}`,
             name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
             party: candidate.partyBallotName || 'Independent',
             email: "contact@example.com", // Placeholder email
             policies: [],
-          })),
-          ...(senateData || []).map((candidate) => ({
+            chamber: "house",
+            division: candidate.division,
+          })) : []),
+          ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
             id: `senate-${candidate.ballotPosition}`,
             name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
             party: candidate.partyBallotName || 'Independent',
             email: "contact@example.com", // Placeholder email
             policies: [],
-            isSenate: true,
-          })),
+            chamber: "senate",
+            state: candidate.state,
+          })) : []),
         ],
       };
 
-      if (electorate.candidates.length === 0) {
-        setInfo("We found your electorate information, but no candidate data is available yet.");
+      const candidateCount = electorate.candidates.length;
+      
+      if (candidateCount === 0) {
+        setInfo(`We found your location (${primaryMapping.electorate} in ${primaryMapping.state}), but no candidate data is available yet.`);
         toast({
           title: "No Candidates Found",
-          description: `Found electorate ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
+          description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
         });
       } else {
+        const chamberText = chamberType === "senate" ? "Senate" : chamberType === "house" ? "House" : "House and Senate";
+        const houseCount = chamberType !== "senate" ? houseData.length : 0;
+        const senateCount = chamberType !== "house" ? senateData.length : 0;
+        
         toast({
           title: "Found your representatives",
-          description: `Found ${houseData?.length || 0} House candidates and ${senateData?.length || 0} Senate candidates.`,
+          description: `Found ${houseCount} House and ${senateCount} Senate candidates for ${primaryMapping.state}.`,
         });
+        
+        // Only continue if there are candidates
         onContinue(electorate);
       }
 
@@ -151,7 +217,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800">Find Your Representatives</h2>
           <p className="text-gray-600 mt-2">
-            Enter your postcode to find federal election candidates in your area
+            {getPromptText()}
           </p>
         </div>
 
@@ -160,9 +226,8 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
             type="text"
             value={postcode}
             onChange={(e) => setPostcode(e.target.value)}
-            placeholder="Enter your postcode"
+            placeholder={getPlaceholderText()}
             className="text-lg"
-            maxLength={4}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleSearch();
@@ -198,7 +263,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
 
         {mappings.length > 0 && (
           <div className="mt-4 p-4 bg-muted rounded-lg">
-            <h3 className="font-semibold mb-2">Postcode Information:</h3>
+            <h3 className="font-semibold mb-2">Location Information:</h3>
             {mappings.map((mapping, index) => (
               <div key={index} className="mb-2 last:mb-0 p-2 bg-white rounded border">
                 <p><span className="font-medium">Electorate:</span> {mapping.electorate}</p>
@@ -213,7 +278,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
 
         {(houseResults.length > 0 || senateResults.length > 0) && (
           <div className="mt-6 space-y-4">
-            {houseResults.length > 0 && (
+            {houseResults.length > 0 && chamberType !== "senate" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">House of Representatives Candidates</h3>
                 <div className="bg-white rounded-lg shadow divide-y">
@@ -230,7 +295,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
               </div>
             )}
 
-            {senateResults.length > 0 && (
+            {senateResults.length > 0 && chamberType !== "house" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Senate Candidates</h3>
                 <div className="bg-white rounded-lg shadow divide-y">
@@ -250,10 +315,18 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
         )}
 
         <div className="bg-muted/50 p-4 rounded-lg">
-          <h3 className="font-medium text-sm text-muted-foreground">Demo Postcodes</h3>
+          <h3 className="font-medium text-sm text-muted-foreground">Search Tips</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Try entering a valid Australian postcode (e.g., 2000, 3000, 2600, 3132) to see your local representatives
+            {chamberType === "senate" 
+              ? "Try entering a valid Australian postcode (e.g., 2000), a suburb name, or state abbreviation (e.g., NSW, VIC)"
+              : "Try entering a valid Australian postcode (e.g., 2000) or a suburb name (e.g., Sydney)"}
           </p>
+        </div>
+
+        <div className="flex justify-between pt-4">
+          <Button variant="outline" onClick={onPrevious}>
+            <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+          </Button>
         </div>
       </div>
     </div>

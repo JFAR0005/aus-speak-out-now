@@ -10,7 +10,7 @@ import {
   CardFooter 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
+import { Mail, UserRound, Users } from "lucide-react";
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -36,20 +36,36 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
             />
             <div className="flex flex-col">
               <h3 className="font-semibold text-lg">{candidate.name}</h3>
-              <Badge 
-                variant="outline" 
-                className={`w-fit ${
-                  candidate.party === "Australian Labor Party" 
-                    ? "bg-red-100 text-red-800 hover:bg-red-100" 
-                    : candidate.party === "Liberal Party of Australia" 
-                    ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                    : candidate.party === "Australian Greens"
-                    ? "bg-green-100 text-green-800 hover:bg-green-100"
-                    : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                }`}
-              >
-                {candidate.party}
-              </Badge>
+              <div className="flex items-center space-x-2">
+                <Badge 
+                  variant="outline" 
+                  className={`w-fit ${
+                    candidate.party === "Australian Labor Party" 
+                      ? "bg-red-100 text-red-800 hover:bg-red-100" 
+                      : candidate.party === "Liberal Party of Australia" 
+                      ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                      : candidate.party === "Australian Greens"
+                      ? "bg-green-100 text-green-800 hover:bg-green-100"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                  }`}
+                >
+                  {candidate.party}
+                </Badge>
+                <Badge 
+                  variant="outline" 
+                  className="bg-slate-100 text-slate-800"
+                >
+                  {candidate.chamber === "house" ? (
+                    <div className="flex items-center">
+                      <UserRound className="h-3 w-3 mr-1" /> House
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <Users className="h-3 w-3 mr-1" /> Senate
+                    </div>
+                  )}
+                </Badge>
+              </div>
             </div>
           </div>
           {candidate.imageUrl && (
@@ -64,25 +80,39 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         </div>
       </CardHeader>
       <CardContent className="pb-2">
-        <h4 className="text-sm font-medium mb-2">Key Positions:</h4>
-        <div className="grid grid-cols-1 gap-1">
-          {candidate.policies.map((policy, index) => (
-            <div key={index} className="flex justify-between text-sm">
-              <span className="text-gray-700">{policy.topic}:</span>
-              <span 
-                className={`${
-                  policy.stance === "Supportive" || policy.stance === "Strongly Supportive"
-                    ? "text-green-600"
-                    : policy.stance === "Opposed" || policy.stance === "Strongly Opposed"
-                    ? "text-red-600"
-                    : "text-amber-600"
-                } font-medium`}
-              >
-                {policy.stance}
-              </span>
+        {candidate.chamber === "house" && candidate.division && (
+          <div className="text-sm mb-2">
+            <span className="font-medium">Division:</span> {candidate.division}
+          </div>
+        )}
+        {candidate.chamber === "senate" && candidate.state && (
+          <div className="text-sm mb-2">
+            <span className="font-medium">State:</span> {candidate.state}
+          </div>
+        )}
+        {candidate.policies && candidate.policies.length > 0 && (
+          <>
+            <h4 className="text-sm font-medium mb-2">Key Positions:</h4>
+            <div className="grid grid-cols-1 gap-1">
+              {candidate.policies.map((policy, index) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <span className="text-gray-700">{policy.topic}:</span>
+                  <span 
+                    className={`${
+                      policy.stance === "Supportive" || policy.stance === "Strongly Supportive"
+                        ? "text-green-600"
+                        : policy.stance === "Opposed" || policy.stance === "Strongly Opposed"
+                        ? "text-red-600"
+                        : "text-amber-600"
+                    } font-medium`}
+                  >
+                    {policy.stance}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </CardContent>
       <CardFooter>
         <Button 

@@ -21,8 +21,8 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   onContinue,
 }) => {
   // Separate House and Senate candidates
-  const houseRepresentatives = electorate.candidates.filter(c => !c.isSenate);
-  const senateCandidates = electorate.candidates.filter(c => c.isSenate);
+  const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
+  const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -32,8 +32,9 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
             Select Representatives to Contact
           </h2>
           <p className="text-gray-600 mt-2">
-            These are the representatives for the {electorate.name} electorate in {electorate.state}. 
-            Select who you'd like to contact.
+            {electorate.state && `These are the representatives for ${electorate.state}.`}
+            {electorate.name && electorate.name !== electorate.state && ` ${electorate.name} electorate in ${electorate.state}.`}
+            <br />Select who you'd like to contact.
           </p>
         </div>
 
@@ -71,7 +72,7 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
 
         {electorate.candidates.length === 0 && (
           <div className="text-center p-6 bg-gray-50 rounded-lg">
-            <p className="text-gray-700">No candidates available for this electorate in our database.</p>
+            <p className="text-gray-700">No candidates available for this location in our database.</p>
           </div>
         )}
 

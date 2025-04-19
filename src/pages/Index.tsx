@@ -3,13 +3,15 @@ import React, { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import StepIndicator from "../components/StepIndicator";
+import ChamberSelectionStep from "../components/ChamberSelectionStep";
 import PostcodeStep from "../components/PostcodeStep";
 import CandidatesStep from "../components/CandidatesStep";
 import MessageStep from "../components/MessageStep";
 import ReviewStep from "../components/ReviewStep";
-import { Electorate } from "../types";
+import { Electorate, ChamberType } from "../types";
 
 const steps = [
+  "Select Chamber",
   "Find Representatives",
   "Select Candidates",
   "Draft Message",
@@ -19,6 +21,7 @@ const steps = [
 const Index = () => {
   // Application state
   const [currentStep, setCurrentStep] = useState(1);
+  const [chamberType, setChamberType] = useState<ChamberType | null>(null);
   const [postcode, setPostcode] = useState("");
   const [selectedElectorate, setSelectedElectorate] = useState<Electorate | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
@@ -26,17 +29,22 @@ const Index = () => {
   const [generatedLetter, setGeneratedLetter] = useState("");
 
   // Step navigation handlers
-  const handleContinueToStep2 = (electorate: Electorate) => {
-    setSelectedElectorate(electorate);
+  const handleChamberSelection = (chamber: ChamberType) => {
+    setChamberType(chamber);
     setCurrentStep(2);
   };
 
-  const handleContinueToStep3 = () => {
+  const handleContinueToStep3 = (electorate: Electorate) => {
+    setSelectedElectorate(electorate);
     setCurrentStep(3);
   };
 
   const handleContinueToStep4 = () => {
     setCurrentStep(4);
+  };
+
+  const handleContinueToStep5 = () => {
+    setCurrentStep(5);
   };
 
   const handleBackToStep1 = () => {
@@ -49,6 +57,10 @@ const Index = () => {
 
   const handleBackToStep3 = () => {
     setCurrentStep(3);
+  };
+
+  const handleBackToStep4 = () => {
+    setCurrentStep(4);
   };
 
   // Candidate selection handler
@@ -70,7 +82,7 @@ const Index = () => {
   // Regenerate letter handler
   const handleRegenerateLetter = () => {
     // Go back to message step
-    setCurrentStep(3);
+    setCurrentStep(4);
   };
 
   return (
@@ -84,43 +96,49 @@ const Index = () => {
 
         <div className="container mx-auto">
           {currentStep === 1 && (
-            <PostcodeStep
-              postcode={postcode}
-              setPostcode={setPostcode}
-              onContinue={handleContinueToStep2}
-            />
+            <ChamberSelectionStep onChamberSelect={handleChamberSelection} />
           )}
 
-          {currentStep === 2 && selectedElectorate && (
-            <CandidatesStep
-              electorate={selectedElectorate}
-              selectedCandidates={selectedCandidates}
-              onSelectCandidate={handleToggleCandidate}
-              onPrevious={handleBackToStep1}
+          {currentStep === 2 && (
+            <PostcodeStep
+              chamberType={chamberType}
+              postcode={postcode}
+              setPostcode={setPostcode}
               onContinue={handleContinueToStep3}
+              onPrevious={handleBackToStep1}
             />
           )}
 
           {currentStep === 3 && selectedElectorate && (
-            <MessageStep
+            <CandidatesStep
               electorate={selectedElectorate}
               selectedCandidates={selectedCandidates}
-              userConcern={userConcern}
-              setUserConcern={setUserConcern}
-              onGenerateLetter={handleGenerateLetter}
+              onSelectCandidate={handleToggleCandidate}
               onPrevious={handleBackToStep2}
               onContinue={handleContinueToStep4}
             />
           )}
 
           {currentStep === 4 && selectedElectorate && (
+            <MessageStep
+              electorate={selectedElectorate}
+              selectedCandidates={selectedCandidates}
+              userConcern={userConcern}
+              setUserConcern={setUserConcern}
+              onGenerateLetter={handleGenerateLetter}
+              onPrevious={handleBackToStep3}
+              onContinue={handleContinueToStep5}
+            />
+          )}
+
+          {currentStep === 5 && selectedElectorate && (
             <ReviewStep
               electorate={selectedElectorate}
               selectedCandidates={selectedCandidates}
               generatedLetter={generatedLetter}
               onEditLetter={setGeneratedLetter}
               onRegenerateLetter={handleRegenerateLetter}
-              onPrevious={handleBackToStep3}
+              onPrevious={handleBackToStep4}
             />
           )}
         </div>

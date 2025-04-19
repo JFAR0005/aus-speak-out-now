@@ -1,4 +1,6 @@
 
+export type ChamberType = "house" | "senate";
+
 export interface Candidate {
   id: string;
   name: string;
@@ -6,7 +8,9 @@ export interface Candidate {
   email: string;
   policies: Policy[];
   imageUrl?: string;
-  isSenate?: boolean;
+  chamber: ChamberType;
+  division?: string; // For house representatives
+  state?: string;    // For senate representatives
 }
 
 export interface Policy {

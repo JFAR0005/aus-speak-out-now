@@ -53,6 +53,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [letterTone, setLetterTone] = useState("formal");
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -150,34 +151,56 @@ const MessageStep: React.FC<MessageStepProps> = ({
     }
 
     setIsGenerating(true);
+    setGenerationProgress(0);
+    
     try {
-      // Generate separate letters for each candidate
-      const letters = await generateLetters(
-        selectedCandidatesList,
-        userConcern,
-        fileContent,
-        letterTone
-      );
+      // Show progress toast for better UX
+      const progressToast = toast({
+        title: "Generating letters",
+        description: "Creating personalized letters for each candidate...",
+      });
       
-      // For backward compatibility, also pass the combined letter
-      const combinedLetter = Object.values(letters).join('\n\n---\n\n');
-      onGenerateLetter(combinedLetter);
-      
-      // If the multi-letter handler is available, use it
-      if (onGenerateMultipleLetters) {
-        onGenerateMultipleLetters(letters);
-      }
-      
-      onContinue();
+      // Use setTimeout to avoid blocking the UI thread
+      setTimeout(async () => {
+        try {
+          // Generate separate letters for each candidate
+          const letters = await generateLetters(
+            selectedCandidatesList,
+            userConcern,
+            fileContent,
+            letterTone
+          );
+          
+          // For backward compatibility, also pass the combined letter
+          const combinedLetter = Object.values(letters).join('\n\n---\n\n');
+          onGenerateLetter(combinedLetter);
+          
+          // If the multi-letter handler is available, use it
+          if (onGenerateMultipleLetters) {
+            onGenerateMultipleLetters(letters);
+          }
+          
+          // Continue to next step
+          onContinue();
+        } catch (error) {
+          console.error("Error generating letter:", error);
+          toast({
+            variant: "destructive",
+            title: "Generation failed",
+            description: "There was an error generating your letters. Please try again.",
+          });
+        } finally {
+          setIsGenerating(false);
+        }
+      }, 100); // Small delay to let the UI update
     } catch (error) {
       console.error("Error generating letter:", error);
+      setIsGenerating(false);
       toast({
         variant: "destructive",
         title: "Generation failed",
         description: "There was an error generating your letter. Please try again.",
       });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -326,9 +349,18 @@ const MessageStep: React.FC<MessageStepProps> = ({
           <Button variant="outline" onClick={onPrevious}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
-          <Button onClick={handleGenerateLetter} disabled={isGenerating || isProcessingFile}>
+          <Button 
+            onClick={handleGenerateLetter} 
+            disabled={isGenerating || isProcessingFile}
+          >
             {isGenerating ? (
-              "Generating..."
+              <>
+                <svg className="animate-spin mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" /> Generate Letters

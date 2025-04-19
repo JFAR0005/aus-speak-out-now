@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -48,14 +48,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   onUpdateIndividualLetters,
   onPrevious,
 }) => {
-  const [activeTab, setActiveTab] = useState(selectedCandidates[0] || "all");
+  // Initialize active tab and make sure it exists in selected candidates
+  const [activeTab, setActiveTab] = useState<string>("");
   const [regenerateTone, setRegenerateTone] = useState("formal");
   const [isRegenerating, setIsRegenerating] = useState<Record<string, boolean>>({});
-  const [editableLetters, setEditableLetters] = useState<Record<string, string>>(
-    Object.keys(individualLetters).length > 0 
-      ? individualLetters 
-      : { all: generatedLetter }
-  );
+  const [editableLetters, setEditableLetters] = useState<Record<string, string>>({});
   const [copiedState, setCopiedState] = useState<Record<string, boolean>>({});
   
   const { toast } = useToast();
@@ -63,6 +60,19 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const selectedCandidatesList = electorate.candidates.filter((c) =>
     selectedCandidates.includes(c.id)
   );
+  
+  // Set initial state based on props - moved to useEffect to avoid render blocking
+  useEffect(() => {
+    // Initialize editableLetters
+    if (Object.keys(individualLetters).length > 0) {
+      setEditableLetters(individualLetters);
+    } else {
+      setEditableLetters({ all: generatedLetter });
+    }
+    
+    // Initialize activeTab to either the first candidate or "all"
+    setActiveTab(selectedCandidates[0] || "all");
+  }, [individualLetters, generatedLetter, selectedCandidates]);
 
   const handleEditLetter = (candidateId: string, newText: string) => {
     setEditableLetters(prev => ({
@@ -73,9 +83,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     if (candidateId === "all") {
       onEditLetter(newText);
     } else if (onUpdateIndividualLetters) {
-      const updatedLetters = { ...editableLetters, [candidateId]: newText };
-      delete updatedLetters.all;
-      onUpdateIndividualLetters(updatedLetters);
+      // Use setTimeout to prevent UI blocking
+      setTimeout(() => {
+        const updatedLetters = { ...editableLetters, [candidateId]: newText };
+        delete updatedLetters.all;
+        onUpdateIndividualLetters(updatedLetters);
+      }, 0);
     }
   };
 
@@ -101,20 +114,23 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const handleCopyAllLetters = () => {
-    const allLettersText = selectedCandidatesList
-      .map(candidate => {
-        const letterText = editableLetters[candidate.id] || "";
-        return `---- LETTER TO ${candidate.name.toUpperCase()} (${candidate.party}) ----\n\n${letterText}\n\n`;
-      })
-      .filter(Boolean)
-      .join("\n\n----------\n\n");
-    
-    navigator.clipboard.writeText(allLettersText);
-    
-    toast({
-      title: "All letters copied",
-      description: "All letters have been copied to your clipboard.",
-    });
+    // Prepare text in a non-blocking way
+    setTimeout(() => {
+      const allLettersText = selectedCandidatesList
+        .map(candidate => {
+          const letterText = editableLetters[candidate.id] || "";
+          return `---- LETTER TO ${candidate.name.toUpperCase()} (${candidate.party}) ----\n\n${letterText}\n\n`;
+        })
+        .filter(Boolean)
+        .join("\n\n----------\n\n");
+      
+      navigator.clipboard.writeText(allLettersText);
+      
+      toast({
+        title: "All letters copied",
+        description: "All letters have been copied to your clipboard.",
+      });
+    }, 0);
   };
 
   const handleCopyEmails = () => {
@@ -168,50 +184,66 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     }));
     
     try {
-      if (candidateId && candidateId !== "all") {
-        const candidate = selectedCandidatesList.find(c => c.id === candidateId);
-        if (candidate) {
-          const letters = await generateLetters(
-            [candidate],
-            "your previous concern",
-            null,
-            regenerateTone
-          );
-          
-          setEditableLetters(prev => ({
-            ...prev,
-            [candidateId]: letters[candidate.id]
-          }));
-          
-          if (onUpdateIndividualLetters) {
-            const updatedLetters = { 
-              ...editableLetters, 
-              [candidateId]: letters[candidate.id] 
-            };
-            delete updatedLetters.all;
-            onUpdateIndividualLetters(updatedLetters);
+      // Use setTimeout to prevent UI blocking
+      setTimeout(async () => {
+        try {
+          if (candidateId && candidateId !== "all") {
+            const candidate = selectedCandidatesList.find(c => c.id === candidateId);
+            if (candidate) {
+              const letters = await generateLetters(
+                [candidate],
+                "your previous concern",
+                null,
+                regenerateTone
+              );
+              
+              setEditableLetters(prev => ({
+                ...prev,
+                [candidateId]: letters[candidate.id]
+              }));
+              
+              if (onUpdateIndividualLetters) {
+                const updatedLetters = { 
+                  ...editableLetters, 
+                  [candidateId]: letters[candidate.id] 
+                };
+                delete updatedLetters.all;
+                onUpdateIndividualLetters(updatedLetters);
+              }
+              
+              toast({
+                title: "Letter regenerated",
+                description: `Letter for ${candidate.name} has been regenerated with a ${regenerateTone} tone.`,
+              });
+            }
+          } else {
+            onRegenerateLetter();
           }
-          
+        } catch (error) {
+          console.error("Error regenerating letter:", error);
           toast({
-            title: "Letter regenerated",
-            description: `Letter for ${candidate.name} has been regenerated with a ${regenerateTone} tone.`,
+            variant: "destructive",
+            title: "Regeneration failed",
+            description: "There was an error regenerating the letter. Please try again.",
           });
+        } finally {
+          setIsRegenerating(prev => ({
+            ...prev,
+            [candidateId || "all"]: false
+          }));
         }
-      } else {
-        onRegenerateLetter();
-      }
+      }, 0);
     } catch (error) {
-      console.error("Error regenerating letter:", error);
+      console.error("Error preparing to regenerate letter:", error);
+      setIsRegenerating(prev => ({
+        ...prev,
+        [candidateId || "all"]: false
+      }));
       toast({
         variant: "destructive",
         title: "Regeneration failed",
         description: "There was an error regenerating the letter. Please try again.",
       });
-    } finally {
-      setIsRegenerating(prev => ({
-        ...prev,
-        [candidateId || "all"]: false
-      }));
     }
   };
 
@@ -251,7 +283,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                   className="text-sm"
                 >
                   {isRegenerating[candidateId] ? (
-                    "Regenerating..."
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Regenerating...
+                    </span>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-3 w-3" /> Regenerate
@@ -301,6 +339,18 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const hasIndividualLetters = Object.keys(individualLetters).length > 0 || selectedCandidatesList.length > 1;
+
+  // Ensure activeTab is valid
+  useEffect(() => {
+    if (activeTab && !selectedCandidates.includes(activeTab) && activeTab !== "all") {
+      setActiveTab(selectedCandidates[0] || "all");
+    }
+  }, [selectedCandidates, activeTab]);
+
+  // Prevent rendering until we have a valid activeTab
+  if (!activeTab) {
+    return <div className="flex justify-center p-8">Loading letters...</div>;
+  }
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -424,7 +474,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                     className="text-sm"
                   >
                     {isRegenerating["all"] ? (
-                      "Regenerating..."
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Regenerating...
+                      </span>
                     ) : (
                       <>
                         <RefreshCw className="mr-2 h-3 w-3" /> Regenerate

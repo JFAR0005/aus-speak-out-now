@@ -15,6 +15,7 @@ export const usePostcodeSearch = (
   const [houseResults, setHouseResults] = useState<any[]>([]);
   const [senateResults, setSenateResults] = useState<any[]>([]);
   const [mappings, setMappings] = useState<any[]>([]);
+  const [debug, setDebug] = useState<any>(null);
   const { toast } = useToast();
 
   const handleSearch = async () => {
@@ -29,6 +30,12 @@ export const usePostcodeSearch = (
     setHouseResults([]);
     setSenateResults([]);
     setMappings([]);
+    
+    const debugInfo: any = {
+      input: postcode,
+      chamberType,
+      steps: []
+    };
 
     try {
       console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
@@ -39,6 +46,7 @@ export const usePostcodeSearch = (
       if (/^\d{4}$/.test(postcode)) {
         // If input is a 4-digit postcode
         mappingQuery = mappingQuery.eq('postcode', postcode);
+        debugInfo.steps.push({ step: "Searching by exact postcode", query: postcode });
       } 
       else if (postcode.length >= 3) {
         const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
@@ -46,8 +54,10 @@ export const usePostcodeSearch = (
         
         if (stateAbbreviations.includes(upperInput)) {
           mappingQuery = mappingQuery.eq('state', upperInput);
+          debugInfo.steps.push({ step: "Searching by state abbreviation", query: upperInput });
         } else {
           mappingQuery = mappingQuery.ilike('locality', `%${postcode}%`);
+          debugInfo.steps.push({ step: "Searching by locality", query: postcode });
         }
       }
 
@@ -55,21 +65,31 @@ export const usePostcodeSearch = (
 
       if (mappingError) {
         console.error("Mapping error:", mappingError);
+        debugInfo.steps.push({ step: "Mapping error", error: mappingError });
         throw mappingError;
       }
 
       if (!mappingData || mappingData.length === 0) {
         setError("We couldn't find any location based on that input. Please check your postcode, suburb, or try a nearby area.");
+        debugInfo.steps.push({ step: "No mappings found" });
+        setDebug(debugInfo);
         setIsSearching(false);
         return;
       }
 
       setMappings(mappingData);
+      debugInfo.steps.push({ step: "Found mappings", count: mappingData.length, mappings: mappingData });
       console.log("Found mappings:", mappingData);
 
       // Step 2: Extract unique electorates and states from postcode mappings
       const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
+      
+      debugInfo.steps.push({ 
+        step: "Extracted unique values", 
+        uniqueElectorates, 
+        uniqueStates 
+      });
       
       console.log("Unique electorates:", uniqueElectorates);
       console.log("Unique states:", uniqueStates);
@@ -80,11 +100,15 @@ export const usePostcodeSearch = (
 
       // Step 3: If we're searching for House candidates, look them up by electorate
       if (chamberType === "house" || chamberType === null) {
+        debugInfo.steps.push({ step: "Starting House candidate search", electorates: uniqueElectorates });
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // For each electorate, perform a query with case-insensitive matching
+        // For each electorate, perform a separate query with case-insensitive matching
         const housePromises = uniqueElectorates.map(async (electorate) => {
+          // Using exact (non-parameterized) column name for debugging clarity
           console.log(`Querying for House candidates in electorate: "${electorate}"`);
+          
+          // FIXED: Use ilike for case-insensitive comparisons
           const { data, error } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
@@ -92,8 +116,18 @@ export const usePostcodeSearch = (
           
           if (error) {
             console.error(`Error querying for electorate ${electorate}:`, error);
+            debugInfo.steps.push({ 
+              step: `Error querying for House candidates in electorate ${electorate}`, 
+              error 
+            });
             return [];
           }
+          
+          debugInfo.steps.push({ 
+            step: `Results for House candidates in electorate "${electorate}"`, 
+            count: data?.length || 0,
+            results: data
+          });
           
           console.log(`Results for electorate ${electorate}:`, data);
           return data || [];
@@ -104,13 +138,21 @@ export const usePostcodeSearch = (
         
         // Merge all results
         houseData = results.flat();
+        debugInfo.steps.push({ 
+          step: "Combined House candidates", 
+          count: houseData.length,
+          houseData
+        });
+        
         console.log("Combined House candidates:", houseData);
         setHouseResults(houseData);
       }
 
       // Step 4: If we're searching for Senate candidates, look them up by state
       if (chamberType === "senate" || chamberType === null) {
+        debugInfo.steps.push({ step: "Starting Senate candidate search", states: uniqueStates });
         console.log("Searching for Senate candidates in states:", uniqueStates);
+        
         const { data: senateResults, error: senateError } = await supabase
           .from('Senate Candidates')
           .select('*')
@@ -118,8 +160,18 @@ export const usePostcodeSearch = (
 
         if (senateError) {
           console.error("Senate candidates query error:", senateError);
+          debugInfo.steps.push({ 
+            step: "Error querying for Senate candidates", 
+            error: senateError 
+          });
           throw senateError;
         }
+        
+        debugInfo.steps.push({ 
+          step: "Senate candidates found", 
+          count: senateResults?.length || 0,
+          results: senateResults
+        });
         
         console.log("Senate candidates found:", senateResults);
         
@@ -156,6 +208,12 @@ export const usePostcodeSearch = (
         ],
       };
 
+      debugInfo.steps.push({ 
+        step: "Created electorate object", 
+        candidateCount: electorate.candidates.length,
+        electorate
+      });
+
       const candidateCount = electorate.candidates.length;
       
       // Step 6: Provide feedback based on search results
@@ -166,17 +224,30 @@ export const usePostcodeSearch = (
             title: "No Candidates Found",
             description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no House candidate data is available yet.`,
           });
+          debugInfo.steps.push({ 
+            step: "No House candidates found despite finding electorate", 
+            electorate: primaryMapping.electorate
+          });
         } else if (chamberType === "senate") {
           setInfo(`We found your state (${primaryMapping.state}), but no Senate candidate data is available yet.`);
           toast({
             title: "No Candidates Found",
             description: `Found your location in ${primaryMapping.state}, but no Senate candidate data is available yet.`,
           });
+          debugInfo.steps.push({ 
+            step: "No Senate candidates found despite finding state", 
+            state: primaryMapping.state
+          });
         } else {
           setInfo(`We found your location (${primaryMapping.electorate} in ${primaryMapping.state}), but no candidate data is available yet.`);
           toast({
             title: "No Candidates Found",
             description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
+          });
+          debugInfo.steps.push({ 
+            step: "No candidates found despite finding location", 
+            electorate: primaryMapping.electorate,
+            state: primaryMapping.state
           });
         }
       } else {
@@ -197,18 +268,30 @@ export const usePostcodeSearch = (
           description: description,
         });
         
+        debugInfo.steps.push({ 
+          step: "Found candidates successfully", 
+          houseCount,
+          senateCount,
+          description
+        });
+        
         onContinue(electorate);
       }
 
     } catch (err) {
       console.error("Error searching candidates:", err);
       setError("Error searching for candidates. Please try again.");
+      debugInfo.steps.push({ 
+        step: "Error in search process", 
+        error: err
+      });
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to fetch candidate data. Please try again.",
       });
     } finally {
+      setDebug(debugInfo);  // Always set debug info
       setIsSearching(false);
     }
   };
@@ -221,5 +304,6 @@ export const usePostcodeSearch = (
     houseResults,
     senateResults,
     handleSearch,
+    debug  // Return debug info
   };
 };

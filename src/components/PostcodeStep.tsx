@@ -31,6 +31,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     houseResults,
     senateResults,
     handleSearch,
+    debug
   } = usePostcodeSearch(chamberType, postcode, onContinue);
 
   const getPlaceholderText = () => {
@@ -92,6 +93,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
           houseResults={houseResults}
           senateResults={senateResults}
           chamberType={chamberType}
+          debug={debug}
         />
 
         <SearchTips chamberType={chamberType} />

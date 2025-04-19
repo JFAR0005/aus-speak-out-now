@@ -10,6 +10,7 @@ interface PostcodeSearchResultsProps {
   houseResults: any[];
   senateResults: any[];
   chamberType: "house" | "senate" | null;
+  debug?: any; // Added for debugging
 }
 
 const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
@@ -19,6 +20,7 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
   houseResults,
   senateResults,
   chamberType,
+  debug,
 }) => {
   return (
     <>
@@ -103,6 +105,16 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
                 : `We found your location, but couldn't find any candidates for that area.`}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Debug information */}
+      {debug && (
+        <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-300">
+          <h3 className="font-mono text-sm font-semibold mb-2">Debug Information:</h3>
+          <pre className="text-xs overflow-auto p-2 bg-gray-800 text-white rounded">
+            {JSON.stringify(debug, null, 2)}
+          </pre>
+        </div>
       )}
     </>
   );

@@ -18,12 +18,14 @@ export const generateLetters = async (
     const storedConcern = sessionStorage.getItem('userLetterConcern');
     if (storedConcern) {
       concern = storedConcern;
+      console.log("Retrieved stored concern:", concern);
     } else {
       concern = "important policy matters affecting our community";
     }
   } else {
     // Store valid concerns for future regenerations
     sessionStorage.setItem('userLetterConcern', concern);
+    console.log("Stored user concern:", concern);
   }
   
   try {

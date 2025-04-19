@@ -48,44 +48,86 @@ export const cleanInputText = (text: string): string => {
   // Capitalize first letter of sentences
   enhancedText = enhancedText.replace(/(^\w|\.[\s\n]\w)/g, letter => letter.toUpperCase());
   
-  // Enhance concern phrasing if it's too short or simple
-  if (enhancedText.split(' ').length <= 3) {
-    enhancedText = `the critical issue of ${enhancedText} and its impact on our community`;
-  }
+  // Don't return the enhanced text directly - we'll use it as a reference for paraphrasing
   
-  // Add contextual enhancements based on key topics
-  if (/climate|environment|carbon|warming|emission/i.test(enhancedText)) {
-    if (!enhancedText.includes("future generations")) {
-      enhancedText += " and its implications for future generations";
+  // Extract key topics from the concern
+  const climateTerms = /climate|environment|carbon|warming|emission/i.test(enhancedText);
+  const healthTerms = /health|medicare|hospital|doctor/i.test(enhancedText);
+  const educationTerms = /education|school|university|student/i.test(enhancedText);
+  const indigenousTerms = /indig|aboriginal|first nation|native|torres/i.test(enhancedText);
+  const genderTerms = /gender|women|domestic|violence|equality/i.test(enhancedText);
+  const housingTerms = /hous|rent|afford|property|homeless/i.test(enhancedText);
+  const economyTerms = /econom|job|unemploy|wage|inflation|cost of living/i.test(enhancedText);
+  
+  // Paraphrase by topic instead of directly inserting the user text
+  if (climateTerms) {
+    return "the urgent need for meaningful climate action and environmental protection";
+  } else if (healthTerms) {
+    return "improving our healthcare system and ensuring accessible medical services for all Australians";
+  } else if (educationTerms) {
+    return "strengthening our education system and expanding opportunities for students across Australia";
+  } else if (indigenousTerms) {
+    return "advancing First Nations rights, recognition, and achieving meaningful reconciliation";
+  } else if (genderTerms) {
+    return "addressing gender equality and eliminating violence against women in our communities";
+  } else if (housingTerms) {
+    return "the housing affordability crisis and improving access to secure housing for all Australians";
+  } else if (economyTerms) {
+    return "economic policies that address cost of living pressures and ensure fair wages for workers";
+  } else {
+    // For other topics, create a more generalized paraphrase
+    const words = enhancedText.split(' ');
+    const keyWords = words.filter(word => word.length > 4).slice(0, 3);
+    
+    // Form a natural sounding phrase based on key words
+    if (keyWords.length > 0) {
+      return `the important issues surrounding ${keyWords.join(' ')} and their impact on our community`;
+    } else {
+      return "important policy matters that affect our community's wellbeing and future";
     }
   }
-  
-  if (/health|medicare|hospital|doctor/i.test(enhancedText)) {
-    if (!enhancedText.includes("healthcare system")) {
-      enhancedText += " within our healthcare system";
-    }
-  }
-  
-  if (/education|school|university|student/i.test(enhancedText)) {
-    if (!enhancedText.includes("educational opportunities")) {
-      enhancedText += " and its effect on educational opportunities";
-    }
-  }
-  
-  if (/indig|aboriginal|first nation|native|torres/i.test(enhancedText)) {
-    if (!enhancedText.includes("reconciliation")) {
-      enhancedText += " in the context of meaningful reconciliation";
-    }
-  }
-  
-  // Final polish for formal tone
-  enhancedText = enhancedText
-    .replace(/i'm concerned about/i, "I have significant concerns regarding")
-    .replace(/i worry/i, "I am deeply concerned")
-    .replace(/i think/i, "I believe")
-    .replace(/i want/i, "I am seeking")
-    .replace(/fix this/i, "address this important issue")
-    .replace(/what will you do/i, "what measures you plan to implement");
-  
-  return enhancedText;
 };
+
+// New function to check grammar and phrasing quality
+export const qualityCheck = (text: string): string => {
+  // Remove redundant phrases
+  let improvedText = text
+    .replace(/\b(issue|matter|concern)\b.*?\b\1\b/gi, '$1')
+    .replace(/\b(important|significant|critical)\b.*?\b\1\b/gi, '$1')
+    .replace(/I am writing to (you )?regarding/gi, 'I am writing regarding')
+    .replace(/I would like to express my concern/gi, 'I am concerned')
+    .replace(/I would like to express my views/gi, 'I believe')
+    .replace(/please do not hesitate to/gi, 'please');
+  
+  // Fix common grammar issues
+  improvedText = improvedText
+    .replace(/\bin regards to\b/gi, 'regarding')
+    .replace(/\bas per\b/gi, 'according to')
+    .replace(/\bbeing that\b/gi, 'because')
+    .replace(/\bat this point in time\b/gi, 'now')
+    .replace(/\bin order to\b/gi, 'to')
+    .replace(/\bimpact on\b/gi, 'affect')
+    .replace(/\butilise\b/gi, 'use')
+    .replace(/\bprior to\b/gi, 'before')
+    .replace(/\bsubsequent to\b/gi, 'after');
+  
+  // Ensure Australian English spelling
+  improvedText = improvedText
+    .replace(/\bcolor\b/gi, 'colour')
+    .replace(/\bcenter\b/gi, 'centre')
+    .replace(/\borganization\b/gi, 'organisation')
+    .replace(/\bspecialized\b/gi, 'specialised')
+    .replace(/\bfavor\b/gi, 'favour')
+    .replace(/\blabor party\b/gi, 'Labor Party') // Australian spelling exception
+    .replace(/\bhonor\b/gi, 'honour')
+    .replace(/\brealize\b/gi, 'realise')
+    .replace(/\brecognize\b/gi, 'recognise');
+  
+  // Fix any repetitive sentences
+  const sentences = improvedText.split(/(?<=[.!?])\s+/);
+  const uniqueSentences = Array.from(new Set(sentences));
+  improvedText = uniqueSentences.join(' ');
+  
+  return improvedText;
+};
+

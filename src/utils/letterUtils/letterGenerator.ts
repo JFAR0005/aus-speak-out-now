@@ -2,7 +2,7 @@
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
-import { cleanInputText } from "./textCleaner";
+import { cleanInputText, qualityCheck } from "./textCleaner";
 import { generateSubjectLine } from "./subjectGenerator";
 import { getRandomStatistic } from "./statisticsProvider";
 
@@ -29,30 +29,33 @@ export const generateLetterForCandidate = (
   }
   
   const greeting = `Dear ${fullTitle}`;
-  const subject = generateSubjectLine(concern);
   
-  // Enhanced concern paraphrasing
-  let enhancedConcern = cleanInputText(concern);
+  // Process the user's concern through our cleaning system
+  // This will paraphrase rather than using verbatim text
+  const concernContext = cleanInputText(concern);
   
-  // More sophisticated opening by tone with better paraphrasing
+  // Generate an appropriate subject line based on the context
+  const subject = generateSubjectLine(concernContext);
+  
+  // More sophisticated opening by tone with natural language
   let opening = '';
   switch (tone) {
     case 'formal':
-      opening = `I am writing regarding ${enhancedConcern}. This matter warrants serious attention from our elected representatives. ${documentInsights}`;
+      opening = `I am writing regarding ${concernContext}. This matter warrants serious consideration from our elected representatives. ${documentInsights}`;
       break;
     case 'passionate':
-      opening = `I am deeply concerned about ${enhancedConcern} and believe urgent action is required. ${documentInsights}`;
+      opening = `I am deeply concerned about ${concernContext} and believe that urgent action is required. ${documentInsights}`;
       break;
     case 'direct':
-      opening = `I wish to understand your position on ${enhancedConcern} as this will influence my voting decision. ${documentInsights}`;
+      opening = `I wish to understand your position on ${concernContext} as this will influence my voting decision. ${documentInsights}`;
       break;
     case 'hopeful':
-      opening = `I believe that as our ${candidateRole}, you can make a meaningful difference regarding ${enhancedConcern}. ${documentInsights}`;
+      opening = `I believe that as our ${candidateRole}, you can make a meaningful difference regarding ${concernContext}. ${documentInsights}`;
       break;
   }
   
   // More varied and natural body text with context-specific statistics
-  const relevantStatistic = getRandomStatistic(concern);
+  const relevantStatistic = getRandomStatistic(concernContext);
   const body = candidate.party
     ? `As a candidate ${partyInfo} for the ${candidateRole}, your position on this matter is particularly significant. ${relevantStatistic}\n\nThe consequences for our community are substantial, and decisive leadership could yield meaningful improvements in this area.`
     : `As a candidate for the ${candidateRole}, you have a unique opportunity to address this critical issue. ${relevantStatistic}\n\nVoters are seeking representatives who will take meaningful action on matters that affect their daily lives.`;
@@ -78,7 +81,8 @@ export const generateLetterForCandidate = (
                  tone === 'passionate' ? 'Kind regards,' :
                  tone === 'direct' ? 'Regards,' : 'Best regards,';
   
-  return `[Your Name]
+  // Construct the initial letter
+  let letterText = `[Your Name]
 [Your Address]
 [Your Email]
 [Your Phone]
@@ -100,4 +104,8 @@ ${closing}
 
 ${signOff}
 [YOUR NAME]`;
+
+  // Apply quality check to improve phrasing and grammar
+  return qualityCheck(letterText);
 };
+

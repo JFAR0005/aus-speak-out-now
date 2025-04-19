@@ -112,7 +112,19 @@ const generateLetterForCandidate = (
   const candidateTitle = generateTitle(candidate);
   const fullTitle = candidateTitle ? `${candidateTitle} ${candidate.name}` : candidate.name;
   const partyInfo = candidate.party ? ` representing the ${candidate.party}` : '';
-  const candidateRole = "prospective elected representative for " + (candidate.electorate || "your area");
+  
+  // Determine the appropriate role description
+  let candidateRole = "prospective elected representative for ";
+  
+  // Use division for house representatives, state for senators, or appropriate fallback
+  if (candidate.chamber === "house") {
+    candidateRole += candidate.division || "your area";
+  } else if (candidate.chamber === "senate") {
+    candidateRole += `${candidate.state || "your state"}`;
+  } else {
+    // Fallback
+    candidateRole += candidate.electorate || candidate.division || candidate.state || "your area";
+  }
   
   // Generate the greeting
   const greeting = `Dear ${fullTitle}`;

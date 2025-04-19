@@ -1,5 +1,5 @@
-
 export type ChamberType = "house" | "senate";
+export type RoleType = "senator" | "mp" | "candidate";
 
 export interface Candidate {
   id: string;
@@ -11,6 +11,8 @@ export interface Candidate {
   chamber: ChamberType;
   division?: string; // For house representatives
   state?: string;    // For senate representatives
+  role?: RoleType;   // Added role property
+  electorate?: string; // Added electorate property for consistency
 }
 
 export interface Policy {

@@ -22,6 +22,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [houseResults, setHouseResults] = useState<any[]>([]);
   const [senateResults, setSenateResults] = useState<any[]>([]);
+  const [mappings, setMappings] = useState<any[]>([]);
 
   const handleSearch = async () => {
     // Validate postcode
@@ -34,34 +35,40 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     setError(null);
     setHouseResults([]);
     setSenateResults([]);
+    setMappings([]);
 
     try {
-      // First, get the electorate and state mapping for the postcode
+      // First, get all mappings for the postcode
       const { data: mappingData, error: mappingError } = await supabase
         .from('postcode_mappings')
         .select('*')
-        .eq('postcode', postcode)
-        .single();
+        .eq('postcode', postcode);
 
-      if (mappingError) {
+      if (mappingError) throw mappingError;
+
+      if (!mappingData || mappingData.length === 0) {
         setError("This postcode is not in our database. Please try another postcode.");
         setIsSearching(false);
         return;
       }
 
-      // Fetch House of Representatives candidates using the mapped electorate
+      setMappings(mappingData);
+
+      // Fetch House of Representatives candidates for all electorates in the postcode
+      const electorates = mappingData.map(m => m.electorate);
       const { data: houseData, error: houseError } = await supabase
         .from('House of Representatives Candidates')
         .select('*')
-        .eq('division', mappingData.electorate);
+        .in('division', electorates);
 
       if (houseError) throw houseError;
 
-      // Fetch Senate candidates using the mapped state
+      // Fetch Senate candidates for the state(s)
+      const states = [...new Set(mappingData.map(m => m.state))];
       const { data: senateData, error: senateError } = await supabase
         .from('Senate Candidates')
         .select('*')
-        .eq('state', mappingData.state);
+        .in('state', states);
 
       if (senateError) throw senateError;
 
@@ -73,19 +80,22 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
         return;
       }
 
-      // Create electorate object with the fetched data
+      // Use the first mapping for now (we can add selection if multiple)
+      const primaryMapping = mappingData[0];
       const electorate: Electorate = {
-        id: postcode, // Using postcode as ID for now
-        name: mappingData.electorate,
-        state: mappingData.state,
+        id: postcode,
+        name: primaryMapping.electorate,
+        state: primaryMapping.state,
         candidates: [
-          ...(houseData || []).map((candidate) => ({
-            id: `house-${candidate.ballotPosition}`,
-            name: `${candidate.ballotGivenName} ${candidate.surname}`,
-            party: candidate.partyBallotName,
-            email: "contact@example.com", // Placeholder
-            policies: [], // Placeholder
-          })),
+          ...(houseData || [])
+            .filter(c => c.division === primaryMapping.electorate)
+            .map((candidate) => ({
+              id: `house-${candidate.ballotPosition}`,
+              name: `${candidate.ballotGivenName} ${candidate.surname}`,
+              party: candidate.partyBallotName,
+              email: "contact@example.com",
+              policies: [],
+            })),
         ],
       };
 
@@ -96,17 +106,6 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     } finally {
       setIsSearching(false);
     }
-  };
-
-  // These functions would need to be replaced with actual mapping logic
-  const mapPostcodeToElectorate = (postcode: string) => {
-    // This is a placeholder mapping
-    return "Melbourne";
-  };
-
-  const mapPostcodeToState = (postcode: string) => {
-    // This is a placeholder mapping
-    return "VIC";
   };
 
   return (
@@ -153,6 +152,21 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
           </Alert>
         )}
 
+        {mappings.length > 0 && (
+          <div className="mt-4 p-4 bg-muted rounded-lg">
+            <h3 className="font-semibold mb-2">Postcode Information:</h3>
+            {mappings.map((mapping, index) => (
+              <div key={index} className="mb-2 last:mb-0">
+                <p><span className="font-medium">Electorate:</span> {mapping.electorate}</p>
+                <p><span className="font-medium">State:</span> {mapping.state}</p>
+                {mapping.locality && (
+                  <p><span className="font-medium">Locality:</span> {mapping.locality}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {(houseResults.length > 0 || senateResults.length > 0) && (
           <div className="mt-6 space-y-4">
             {houseResults.length > 0 && (
@@ -163,6 +177,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
                     <div key={candidate.ballotPosition} className="p-4">
                       <div className="font-medium">{candidate.ballotGivenName} {candidate.surname}</div>
                       <div className="text-sm text-gray-600">{candidate.partyBallotName}</div>
+                      <div className="text-sm text-gray-500">Division: {candidate.division}</div>
                     </div>
                   ))}
                 </div>
@@ -177,6 +192,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
                     <div key={candidate.ballotPosition} className="p-4">
                       <div className="font-medium">{candidate.ballotGivenName} {candidate.surname}</div>
                       <div className="text-sm text-gray-600">{candidate.partyBallotName}</div>
+                      <div className="text-sm text-gray-500">State: {candidate.state}</div>
                     </div>
                   ))}
                 </div>
@@ -188,7 +204,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
         <div className="bg-muted/50 p-4 rounded-lg">
           <h3 className="font-medium text-sm text-muted-foreground">Demo Postcodes</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            For demonstration, try these postcodes: 3000 (Melbourne), 2000 (Sydney), 4000 (Brisbane)
+            Try entering a valid Australian postcode to see your local representatives
           </p>
         </div>
       </div>

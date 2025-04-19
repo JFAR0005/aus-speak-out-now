@@ -1,4 +1,3 @@
-
 import { Candidate } from "../types";
 
 const formatDate = (date: Date): string => {
@@ -45,38 +44,46 @@ const generateSubjectLine = (concern: string): string => {
   return `Re: Concerns regarding ${concernWords}...`;
 };
 
-// Extract key insights from uploaded document
-const extractDocumentInsights = (documentText: string, concern: string): string => {
+// Extract key insights from uploaded document - improved with better error handling and optimization
+const extractDocumentInsights = (documentText: string | null, concern: string): string => {
   if (!documentText || documentText.trim() === '') {
     return '';
   }
   
-  // Look for statistics and numbers
-  const stats = documentText.match(/\d+(\.\d+)?%|\$\d+(\.\d+)? (million|billion)|(\d+,)+\d+/g) || [];
-  
-  // Look for quotes or key statements
-  const quotes = documentText.match(/"([^"]*)"|'([^']*)'/g) || [];
-  
-  // Look for statements with numbers that might be statistics
-  const numStatements = documentText.match(/[^.!?]*\d+[^.!?]*[.!?]/g) || [];
-  
-  // Create a list of potential facts to include
-  const facts = [...stats, ...quotes, ...numStatements];
-  
-  // Filter facts to those relevant to the concern
-  const concernKeywords = concern.toLowerCase().split(' ');
-  const relevantFacts = facts.filter(fact => 
-    concernKeywords.some(keyword => 
-      keyword.length > 3 && fact.toLowerCase().includes(keyword)
-    )
-  );
-  
-  // Return a condensed version of the insights
-  if (relevantFacts.length > 0) {
-    return `Based on the document provided, I've found these relevant facts: ${relevantFacts.slice(0, 5).join('; ')}. `;
+  try {
+    // Limit the text size to prevent processing extremely large documents
+    const limitedText = documentText.substring(0, 10000); // Only analyze first 10k characters
+    
+    // Look for statistics and numbers
+    const stats = limitedText.match(/\d+(\.\d+)?%|\$\d+(\.\d+)? (million|billion)|(\d+,)+\d+/g) || [];
+    
+    // Look for quotes or key statements
+    const quotes = limitedText.match(/"([^"]*)"|'([^']*)'/g) || [];
+    
+    // Look for statements with numbers that might be statistics
+    const numStatements = limitedText.match(/[^.!?]*\d+[^.!?]*[.!?]/g) || [];
+    
+    // Create a list of potential facts to include, but limit the size
+    const facts = [...stats, ...quotes, ...numStatements].slice(0, 20); // Only keep top 20 items
+    
+    // Filter facts to those relevant to the concern
+    const concernKeywords = concern.toLowerCase().split(' ');
+    const relevantFacts = facts.filter(fact => 
+      concernKeywords.some(keyword => 
+        keyword.length > 3 && fact.toLowerCase().includes(keyword)
+      )
+    ).slice(0, 5); // Keep only top 5 relevant facts
+    
+    // Return a condensed version of the insights
+    if (relevantFacts.length > 0) {
+      return `Based on the document provided, I've found these relevant facts: ${relevantFacts.join('; ')}. `;
+    }
+    
+    return `I've reviewed the document you've provided which contains information about ${concern}. `;
+  } catch (error) {
+    console.error("Error extracting document insights:", error);
+    return `I've reviewed your document, but couldn't extract specific insights. `;
   }
-  
-  return `I've reviewed the document you've provided which contains information about ${concern}. `;
 };
 
 // Generate a letter for an individual candidate
@@ -220,39 +227,75 @@ export const generateLetters = async (
 ): Promise<Record<string, string>> => {
   // Process uploaded document if available
   let documentInsights = '';
-  if (uploadedContent) {
-    documentInsights = extractDocumentInsights(uploadedContent, concern);
-  }
   
-  // Generate individual letters
-  const letters: Record<string, string> = {};
-  
-  // Use a more efficient approach with batch processing
-  // Process in small batches to avoid UI freezing
-  const batchSize = 1;
-  const totalCandidates = candidates.length;
-  
-  // Process candidates in batches
-  for (let i = 0; i < totalCandidates; i += batchSize) {
-    const batch = candidates.slice(i, i + batchSize);
-    
-    // Small artificial delay to allow UI thread to breathe between batches
-    if (i > 0) {
-      await new Promise(resolve => setTimeout(resolve, 5));
+  try {
+    if (uploadedContent) {
+      // Process document insights with a small delay to avoid UI blocking
+      return new Promise((resolve) => {
+        // Use setTimeout to keep UI responsive
+        setTimeout(() => {
+          try {
+            documentInsights = extractDocumentInsights(uploadedContent, concern);
+            
+            // Generate individual letters
+            const letters: Record<string, string> = {};
+            
+            // Use a more efficient approach with batch processing
+            // Process in small batches to avoid UI freezing
+            const batchSize = 1;
+            const totalCandidates = candidates.length;
+            
+            // Process candidates in batches
+            for (let i = 0; i < totalCandidates; i += batchSize) {
+              const batch = candidates.slice(i, i + batchSize);
+              
+              // Process each candidate in the current batch
+              for (const candidate of batch) {
+                try {
+                  letters[candidate.id] = generateLetterForCandidate(
+                    candidate,
+                    concern,
+                    documentInsights,
+                    tone
+                  );
+                } catch (err) {
+                  console.error(`Error generating letter for ${candidate.name}:`, err);
+                  letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
+                }
+              }
+            }
+            
+            resolve(letters);
+          } catch (error) {
+            console.error("Error in letter generation process:", error);
+            resolve({});
+          }
+        }, 10); // Small delay to let UI breathe
+      });
+    } else {
+      // No document to process, generate letters directly
+      const letters: Record<string, string> = {};
+      
+      for (const candidate of candidates) {
+        try {
+          letters[candidate.id] = generateLetterForCandidate(
+            candidate,
+            concern,
+            '',
+            tone
+          );
+        } catch (err) {
+          console.error(`Error generating letter for ${candidate.name}:`, err);
+          letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
+        }
+      }
+      
+      return letters;
     }
-    
-    // Process each candidate in the current batch
-    for (const candidate of batch) {
-      letters[candidate.id] = generateLetterForCandidate(
-        candidate,
-        concern,
-        documentInsights,
-        tone
-      );
-    }
+  } catch (error) {
+    console.error("Fatal error in generateLetters:", error);
+    return {};
   }
-  
-  return letters;
 };
 
 // For backward compatibility

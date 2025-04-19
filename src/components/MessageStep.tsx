@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,13 +83,31 @@ const MessageStep: React.FC<MessageStepProps> = ({
       return;
     }
     
-    // Read file content
+    // Read file content - improved with better error handling
     const reader = new FileReader();
     
+    // Set timeout for large file reading to prevent UI freeze
+    const readTimeout = setTimeout(() => {
+      if (isProcessingFile) {
+        reader.abort();
+        setFileError("File processing timed out. The file might be too large or complex.");
+        setIsProcessingFile(false);
+        
+        toast({
+          variant: "destructive",
+          title: "Processing timeout",
+          description: "File processing took too long. Please try a smaller or simpler file.",
+        });
+      }
+    }, 10000); // 10 second timeout
+    
     reader.onload = (e) => {
+      clearTimeout(readTimeout);
       try {
         const text = e.target?.result as string;
-        setFileContent(text);
+        // Limit file content to prevent memory issues (first 20KB)
+        const limitedText = text.substring(0, 20000);
+        setFileContent(limitedText);
         setIsProcessingFile(false);
         
         toast({
@@ -111,6 +128,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
     };
     
     reader.onerror = () => {
+      clearTimeout(readTimeout);
       setFileError("There was an error reading the file.");
       setIsProcessingFile(false);
       
@@ -125,8 +143,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
     if (file.type === "text/plain") {
       reader.readAsText(file);
     } else {
-      // For PDFs, DOCs, etc. we'd ideally use a proper parser
-      // For this demo, we'll just read as text and extract what we can
+      // For PDFs, DOCs, etc. we'll just read as text and extract what we can
       reader.readAsText(file);
     }
   };
@@ -160,39 +177,41 @@ const MessageStep: React.FC<MessageStepProps> = ({
         description: "Creating personalized letters for each candidate...",
       });
       
-      // Use setTimeout to avoid blocking the UI thread
-      setTimeout(async () => {
-        try {
-          // Generate separate letters for each candidate
-          const letters = await generateLetters(
-            selectedCandidatesList,
-            userConcern,
-            fileContent,
-            letterTone
-          );
-          
-          // For backward compatibility, also pass the combined letter
-          const combinedLetter = Object.values(letters).join('\n\n---\n\n');
-          onGenerateLetter(combinedLetter);
-          
-          // If the multi-letter handler is available, use it
-          if (onGenerateMultipleLetters) {
-            onGenerateMultipleLetters(letters);
-          }
-          
-          // Continue to next step
-          onContinue();
-        } catch (error) {
-          console.error("Error generating letter:", error);
-          toast({
-            variant: "destructive",
-            title: "Generation failed",
-            description: "There was an error generating your letters. Please try again.",
-          });
-        } finally {
-          setIsGenerating(false);
+      // Generate separate letters for each candidate with improved error handling
+      try {
+        const letters = await generateLetters(
+          selectedCandidatesList,
+          userConcern,
+          fileContent,
+          letterTone
+        );
+        
+        // Handle empty result
+        if (Object.keys(letters).length === 0) {
+          throw new Error("Failed to generate letters");
         }
-      }, 100); // Small delay to let the UI update
+        
+        // For backward compatibility, also pass the combined letter
+        const combinedLetter = Object.values(letters).join('\n\n---\n\n');
+        onGenerateLetter(combinedLetter);
+        
+        // If the multi-letter handler is available, use it
+        if (onGenerateMultipleLetters) {
+          onGenerateMultipleLetters(letters);
+        }
+        
+        // Continue to next step
+        onContinue();
+      } catch (error) {
+        console.error("Error generating letter:", error);
+        toast({
+          variant: "destructive",
+          title: "Generation failed",
+          description: "There was an error generating your letters. Please try again.",
+        });
+      } finally {
+        setIsGenerating(false);
+      }
     } catch (error) {
       console.error("Error generating letter:", error);
       setIsGenerating(false);

@@ -6,6 +6,7 @@ export interface Candidate {
   email: string;
   policies: Policy[];
   imageUrl?: string;
+  isSenate?: boolean;
 }
 
 export interface Policy {

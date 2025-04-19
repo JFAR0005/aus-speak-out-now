@@ -20,6 +20,10 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   onPrevious,
   onContinue,
 }) => {
+  // Separate House and Senate candidates
+  const houseRepresentatives = electorate.candidates.filter(c => !c.isSenate);
+  const senateCandidates = electorate.candidates.filter(c => c.isSenate);
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       <div className="space-y-6">
@@ -28,21 +32,48 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
             Select Representatives to Contact
           </h2>
           <p className="text-gray-600 mt-2">
-            These are the candidates for the {electorate.name} electorate in {electorate.state}. 
+            These are the representatives for the {electorate.name} electorate in {electorate.state}. 
             Select who you'd like to contact.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {electorate.candidates.map((candidate) => (
-            <CandidateCard
-              key={candidate.id}
-              candidate={candidate}
-              isSelected={selectedCandidates.includes(candidate.id)}
-              onToggleSelect={onSelectCandidate}
-            />
-          ))}
-        </div>
+        {houseRepresentatives.length > 0 && (
+          <div>
+            <h3 className="text-xl font-semibold mb-3">House of Representatives</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {houseRepresentatives.map((candidate) => (
+                <CandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  isSelected={selectedCandidates.includes(candidate.id)}
+                  onToggleSelect={onSelectCandidate}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {senateCandidates.length > 0 && (
+          <div>
+            <h3 className="text-xl font-semibold mb-3">Senate</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {senateCandidates.map((candidate) => (
+                <CandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  isSelected={selectedCandidates.includes(candidate.id)}
+                  onToggleSelect={onSelectCandidate}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {electorate.candidates.length === 0 && (
+          <div className="text-center p-6 bg-gray-50 rounded-lg">
+            <p className="text-gray-700">No candidates available for this electorate in our database.</p>
+          </div>
+        )}
 
         <div className="flex justify-between pt-4">
           <Button variant="outline" onClick={onPrevious}>

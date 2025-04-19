@@ -8,7 +8,7 @@ const formatDate = (date: Date): string => {
   });
 };
 
-// Generate appropriate title based on candidate info
+// Generate appropriate title based on candidate info with Australian conventions
 const generateTitle = (candidate: Candidate): string => {
   // Only use official titles if we're certain of their current role
   if (candidate.role === "senator") {
@@ -20,29 +20,49 @@ const generateTitle = (candidate: Candidate): string => {
   return ""; // Will be combined with name later
 };
 
-// Clean and improve input text
+// Clean and improve input text with Australian English
 const cleanInputText = (text: string): string => {
+  // Convert to Australian English spelling
+  const australianSpelling: Record<string, string> = {
+    'center': 'centre',
+    'program': 'programme',
+    'organization': 'organisation',
+    'labor party': 'Labour Party',
+    'district': 'federal electorate',
+    'representing': 'candidate for',
+  };
+  
+  let cleanedText = text;
+  
+  // Apply Australian spelling
+  Object.entries(australianSpelling).forEach(([american, australian]) => {
+    const regex = new RegExp(american, 'gi');
+    cleanedText = cleanedText.replace(regex, australian);
+  });
+  
   // Remove multiple spaces and normalize line endings
-  text = text.replace(/\s+/g, ' ').trim();
+  cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+  
   // Ensure first letter of sentences is capitalized
-  text = text.replace(/(^\w|\.[\s\n]\w)/g, letter => letter.toUpperCase());
-  return text;
+  cleanedText = cleanedText.replace(/(^\w|\.[\s\n]\w)/g, letter => letter.toUpperCase());
+  
+  return cleanedText;
 };
 
 // Generate a formal subject line based on concern
 const generateSubjectLine = (concern: string): string => {
   // Extract key topic for subject line
   const topics = {
-    "climate": "Climate Action and Environmental Protection",
-    "healthcare": "Healthcare Reform and Accessibility",
+    "climate": "Climate Action and Environmental Policy",
+    "healthcare": "Healthcare Reform and Medicare Funding",
     "education": "Education Funding and Reform",
     "housing": "Housing Affordability Crisis",
     "immigration": "Immigration Policy Reform",
-    "economy": "Economic Policy and Job Creation",
+    "economy": "Economic Policy and Employment",
     "gender": "Gender Equality and Women's Rights",
-    "violence": "Action Against Violence and Safety Measures",
-    "indigenous": "Indigenous Rights and Recognition",
-    "disability": "Disability Support and Inclusion",
+    "violence": "Action Against Family and Gender-Based Violence",
+    "indigenous": "First Nations Rights and Recognition",
+    "disability": "Disability Support and NDIS Reform",
   };
   
   // Find matching topic or use generic subject
@@ -56,7 +76,7 @@ const generateSubjectLine = (concern: string): string => {
   
   // If no specific match, create a generic subject from the concern
   const concernWords = concern.split(' ').slice(0, 5).join(' ');
-  return `Re: Concerns regarding ${concernWords}...`;
+  return `Re: Concerns Regarding ${concernWords}...`;
 };
 
 // Extract key insights from uploaded document - improved with better error handling
@@ -108,22 +128,24 @@ const generateLetterForCandidate = (
   documentInsights: string,
   tone: string
 ): string => {
-  // Get candidate-specific information
+  // Get candidate-specific information with Australian conventions
   const candidateTitle = generateTitle(candidate);
   const fullTitle = candidateTitle ? `${candidateTitle} ${candidate.name}` : candidate.name;
-  const partyInfo = candidate.party ? ` representing the ${candidate.party}` : '';
+  const partyInfo = candidate.party ? ` for the ${candidate.party}` : '';
   
   // Determine the appropriate role description
-  let candidateRole = "prospective elected representative for ";
+  let candidateRole = "prospective elected representative for the ";
   
-  // Use division for house representatives, state for senators, or appropriate fallback
+  // Use appropriate electoral terminology
   if (candidate.chamber === "house") {
-    candidateRole += candidate.division || "your area";
+    candidateRole += `federal seat of ${candidate.division || "your area"}`;
   } else if (candidate.chamber === "senate") {
-    candidateRole += `${candidate.state || "your state"}`;
+    candidateRole += `state of ${candidate.state || "your state"}`;
   } else {
-    // Fallback
-    candidateRole += candidate.electorate || candidate.division || candidate.state || "your area";
+    // Fallback with correct Australian terminology
+    candidateRole += candidate.electorate || 
+                    (candidate.division ? `federal seat of ${candidate.division}` : 
+                    (candidate.state ? `state of ${candidate.state}` : "your area"));
   }
   
   // Generate the greeting
@@ -136,11 +158,11 @@ const generateLetterForCandidate = (
   // Generate different opening paragraphs based on tone
   let opening = '';
   if (tone === 'formal') {
-    opening = `I write to you as a constituent regarding ${cleanedConcern}. ${documentInsights}`;
+    opening = `I am writing to express my concerns regarding ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'passionate') {
-    opening = `As a deeply concerned member of our community, I must address ${cleanedConcern}. ${documentInsights}`;
+    opening = `As a deeply concerned member of our community, I must address the urgent matter of ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'direct') {
-    opening = `I seek your position on ${cleanedConcern}. ${documentInsights}`;
+    opening = `I am seeking your position on ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'hopeful') {
     opening = `I believe that as our ${candidateRole}, you can make a real difference regarding ${cleanedConcern}. ${documentInsights}`;
   }
@@ -149,7 +171,7 @@ const generateLetterForCandidate = (
   let body = '';
   
   if (candidate.party) {
-    body = `As a ${candidateRole}${partyInfo}, your stance on this issue is crucial. ${getRandomStatistic(concern)}\n\nThe impact of this issue on our community cannot be overstated, and your leadership could make a significant difference.`;
+    body = `As a ${candidateRole}${partyInfo}, your stance on this issue is crucial. ${getRandomStatistic(concern)}\n\nThe impact of this issue on our community is significant, and your leadership could make a meaningful difference.`;
   } else {
     body = `As a ${candidateRole}, you have a unique opportunity to address this important issue. ${getRandomStatistic(concern)}\n\nOur community looks to its leaders for meaningful action on this matter.`;
   }
@@ -157,21 +179,21 @@ const generateLetterForCandidate = (
   // Create a closing that asks for specific action
   let closing = '';
   if (tone === 'formal') {
-    closing = `I would appreciate your response outlining your position on this matter. Would you be available to discuss this issue in more detail?`;
+    closing = `I would welcome your response outlining your position and proposed policies on this matter. Would you be available to discuss this issue in more detail?`;
   } else if (tone === 'passionate') {
-    closing = `Please share your detailed position on this issue and what specific actions you plan to take if elected.`;
+    closing = `Please share your detailed position and specific policy commitments on this issue. What concrete steps would you take if elected?`;
   } else if (tone === 'direct') {
     closing = `I request that you: 1) Clarify your position on this issue, 2) Detail your proposed actions, and 3) Provide a timeline for implementation.`;
   } else if (tone === 'hopeful') {
-    closing = `I would welcome the opportunity to discuss how we might work together to address this important issue.`;
+    closing = `I would welcome the opportunity to discuss how we might work together to address this important issue for our community.`;
   }
   
-  // Generate sign-off
-  const signOff = tone === 'formal' ? 'Yours sincerely,' : 
-                 tone === 'passionate' ? 'With sincere regards,' :
+  // Generate sign-off with Australian conventions
+  const signOff = tone === 'formal' ? 'Yours faithfully,' : 
+                 tone === 'passionate' ? 'Kind regards,' :
                  tone === 'direct' ? 'Regards,' : 'Best regards,';
   
-  // Assemble the letter with proper formatting
+  // Assemble the letter with proper formatting and Australian conventions
   const letter = `[Your Name]
 [Your Address]
 [Your Email]

@@ -1,4 +1,3 @@
-
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
@@ -37,43 +36,44 @@ export const generateLetterForCandidate = (
   // Generate an appropriate subject line based on the context
   const subject = generateSubjectLine(concernContext);
   
-  // More sophisticated opening by tone with natural language
+  // More structured opening with paragraph breaks
   let opening = '';
   switch (tone) {
     case 'formal':
-      opening = `I am writing regarding ${concernContext}. This matter warrants serious consideration from our elected representatives. ${documentInsights}`;
+      opening = `I am writing to address an important matter concerning ${concernContext}.\n\n${documentInsights ? documentInsights + '\n\n' : ''}I believe this issue requires careful consideration and meaningful action.`;
       break;
     case 'passionate':
-      opening = `I am deeply concerned about ${concernContext} and believe that urgent action is required. ${documentInsights}`;
+      opening = `I am deeply concerned about ${concernContext} and feel compelled to bring this critical issue to your attention.\n\n${documentInsights ? documentInsights + '\n\n' : ''}The potential impact on our community cannot be overstated.`;
       break;
     case 'direct':
-      opening = `I wish to understand your position on ${concernContext} as this will influence my voting decision. ${documentInsights}`;
+      opening = `I am writing to discuss ${concernContext} and understand your proposed approach to addressing this matter.\n\n${documentInsights ? documentInsights + '\n\n' : ''}Your position on this issue will significantly influence my perspective.`;
       break;
     case 'hopeful':
-      opening = `I believe that as our ${candidateRole}, you can make a meaningful difference regarding ${concernContext}. ${documentInsights}`;
+      opening = `As a constituent, I am reaching out to discuss ${concernContext} and the potential for positive change.\n\n${documentInsights ? documentInsights + '\n\n' : ''}I believe that meaningful dialogue can lead to effective solutions.`;
       break;
   }
   
-  // More varied and natural body text with context-specific statistics
+  // More structured body with clear paragraphs
   const relevantStatistic = getRandomStatistic(concernContext);
-  const body = candidate.party
-    ? `As a candidate ${partyInfo} for the ${candidateRole}, your position on this matter is particularly significant. ${relevantStatistic}\n\nThe consequences for our community are substantial, and decisive leadership could yield meaningful improvements in this area.`
-    : `As a candidate for the ${candidateRole}, you have a unique opportunity to address this critical issue. ${relevantStatistic}\n\nVoters are seeking representatives who will take meaningful action on matters that affect their daily lives.`;
+  const body = `As a candidate ${partyInfo} for the ${candidateRole}, you play a crucial role in addressing community concerns.\n\n${relevantStatistic}\n\nThe implications of this issue extend beyond simple policy – they directly impact the lives of constituents like myself.\n\nI am seeking a representative who will not just listen, but take concrete, meaningful action to address these challenges.`;
   
-  // More specific and action-oriented closing statements
+  // More structured and conversational closing
   let closing = '';
   switch (tone) {
     case 'formal':
-      closing = `I would appreciate your response outlining your position and proposed approach to this issue. Would it be possible to discuss this matter in more detail?`;
+      closing = `I would appreciate the opportunity to discuss this matter further and understand your perspective.\n\nPlease provide insight into how you intend to approach and resolve these critical concerns.`;
       break;
     case 'passionate':
-      closing = `Please share your detailed position and specific commitments on this issue. What concrete steps would you implement if elected?`;
+      closing = `I am eager to hear your specific commitments and actionable plans for addressing this issue.\n\nWhat concrete steps will you take to make a meaningful difference?`;
       break;
     case 'direct':
-      closing = `I specifically request: 1) Your position on this issue, 2) Your proposed policy actions, and 3) How you would measure success in addressing this concern.`;
+      closing = `I request a clear, detailed response that outlines:
+1. Your specific position on this issue
+2. Proposed policy actions
+3. Measurable outcomes you aim to achieve\n\nYour transparency will be crucial in earning my support.`;
       break;
     case 'hopeful':
-      closing = `I would welcome an opportunity to discuss how we might work together on practical solutions to address this important issue for our community.`;
+      closing = `I look forward to the possibility of constructive dialogue and collaborative problem-solving.\n\nTogether, we can work towards meaningful progress for our community.`;
       break;
   }
   
@@ -108,4 +108,3 @@ ${signOff}
   // Apply quality check to improve phrasing and grammar
   return qualityCheck(letterText);
 };
-

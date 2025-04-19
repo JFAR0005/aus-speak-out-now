@@ -82,7 +82,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
       <CardContent className="pb-2">
         {candidate.chamber === "house" && candidate.division && (
           <div className="text-sm mb-2">
-            <span className="font-medium">Division:</span> {candidate.division}
+            <span className="font-medium">Electorate:</span> {candidate.division}
           </div>
         )}
         {candidate.chamber === "senate" && candidate.state && (

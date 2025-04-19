@@ -33,6 +33,7 @@ export const usePostcodeSearch = (
     try {
       console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
       
+      // Fetch postcode mappings
       let mappingQuery = supabase.from('postcode_mappings').select('*');
       
       if (/^\d{4}$/.test(postcode)) {
@@ -65,10 +66,11 @@ export const usePostcodeSearch = (
       setMappings(mappingData);
       console.log("Found mappings:", mappingData);
 
-      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
+      // Extract unique electorates and states from postcode mappings
+      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate.toLowerCase().trim()))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
       
-      console.log("Unique electorates:", uniqueElectorates);
+      console.log("Unique electorates (lowercase and trimmed):", uniqueElectorates);
       console.log("Unique states:", uniqueStates);
 
       const primaryMapping = mappingData[0];
@@ -77,10 +79,19 @@ export const usePostcodeSearch = (
 
       if (chamberType === "house" || chamberType === null) {
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
-        const { data: houseResults, error: houseError } = await supabase
+        
+        // Try with case-insensitive search for electorate
+        const houseQuery = supabase
           .from('House of Representatives Candidates')
-          .select('*')
-          .in('electorate', uniqueElectorates);
+          .select('*');
+          
+        // Use OR conditions for each electorate with case-insensitive matching
+        const electorateQueries = uniqueElectorates.map(electorate => 
+          `electorate.ilike.${electorate}`
+        );
+        
+        const { data: houseResults, error: houseError } = await houseQuery
+          .or(electorateQueries.join(','));
 
         if (houseError) {
           console.error("House candidates query error:", houseError);
@@ -92,17 +103,8 @@ export const usePostcodeSearch = (
         if (houseResults && houseResults.length > 0) {
           houseData = houseResults;
         } else {
-          console.log("No House candidates found from database. Adding a fallback candidate for testing.");
-          if (uniqueElectorates.includes("Sydney")) {
-            houseData = [{
-              ballotGivenName: "Tanya",
-              surname: "Plibersek",
-              partyBallotName: "Australian Labor Party",
-              electorate: "Sydney",
-              state: primaryMapping.state,
-              ballotPosition: "1"
-            }];
-          }
+          console.log("No House candidates found from database for electorates:", uniqueElectorates);
+          // Removed fallback candidates as requested
         }
       }
 
@@ -123,16 +125,8 @@ export const usePostcodeSearch = (
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
         } else {
-          console.log("No Senate candidates found from database. Adding fallback candidates for testing.");
-          if (uniqueStates.includes("NSW")) {
-            senateData = [{
-              ballotGivenName: "Jane",
-              surname: "Doe",
-              partyBallotName: "Australian Greens",
-              state: "NSW",
-              ballotPosition: "1"
-            }];
-          }
+          console.log("No Senate candidates found from database for states:", uniqueStates);
+          // Removed fallback candidates as requested
         }
       }
 
@@ -151,7 +145,7 @@ export const usePostcodeSearch = (
             email: "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,
-            division: candidate.electorate, // Use electorate (formerly division)
+            division: candidate.electorate, // Keep using division key for backward compatibility
           })) : []),
           ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
             id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,

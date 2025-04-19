@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,12 +58,15 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
       setMappings(mappingData);
       console.log("Found mappings:", mappingData);
 
-      // Fetch House of Representatives candidates for all electorates in the postcode
-      const electorates = mappingData.map(m => m.electorate);
+      // Get unique electorates and states from mappings
+      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
+      const uniqueStates = [...new Set(mappingData.map(m => m.state))];
+
+      // Fetch House of Representatives candidates for all matched electorates
       const { data: houseData, error: houseError } = await supabase
         .from('House of Representatives Candidates')
         .select('*')
-        .in('division', electorates);
+        .in('division', uniqueElectorates);
 
       if (houseError) {
         console.error("House candidates error:", houseError);
@@ -74,11 +76,10 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
       console.log("House candidates response:", houseData);
 
       // Fetch Senate candidates for the state(s)
-      const states = [...new Set(mappingData.map(m => m.state))];
       const { data: senateData, error: senateError } = await supabase
         .from('Senate Candidates')
         .select('*')
-        .in('state', states);
+        .in('state', uniqueStates);
 
       if (senateError) {
         console.error("Senate candidates error:", senateError);
@@ -90,82 +91,55 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
       setHouseResults(houseData || []);
       setSenateResults(senateData || []);
 
-      if ((!houseData || houseData.length === 0) && (!senateData || senateData.length === 0)) {
-        setInfo("We've found your electorate, but no candidates are currently available in our database. This may be because the election data hasn't been loaded yet.");
-      } else {
-        // Show success toast
-        toast({
-          title: "Found your electorate",
-          description: `We found ${houseData?.length || 0} House candidates and ${senateData?.length || 0} Senate candidates.`,
-        });
-      }
-
-      // Use the first mapping for now (we can add selection if multiple)
+      // Use the first mapping for the electorate object
       const primaryMapping = mappingData[0];
+      
+      // Create the electorate object with both House and Senate candidates
       const electorate: Electorate = {
         id: postcode,
         name: primaryMapping.electorate,
         state: primaryMapping.state,
         candidates: [
-          ...(houseData || [])
-            .filter(c => c.division === primaryMapping.electorate)
-            .map((candidate) => ({
-              id: `house-${candidate.ballotPosition}`,
-              name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
-              party: candidate.partyBallotName || 'Independent',
-              email: "contact@example.com", // Placeholder email
-              policies: [],
-            })),
-          ...(senateData || [])
-            .filter(c => c.state === primaryMapping.state)
-            .map((candidate) => ({
-              id: `senate-${candidate.ballotPosition}`,
-              name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
-              party: candidate.partyBallotName || 'Independent',
-              email: "contact@example.com", // Placeholder email
-              policies: [],
-              isSenate: true,
-            })),
+          ...(houseData || []).map((candidate) => ({
+            id: `house-${candidate.ballotPosition}`,
+            name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
+            party: candidate.partyBallotName || 'Independent',
+            email: "contact@example.com", // Placeholder email
+            policies: [],
+          })),
+          ...(senateData || []).map((candidate) => ({
+            id: `senate-${candidate.ballotPosition}`,
+            name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
+            party: candidate.partyBallotName || 'Independent',
+            email: "contact@example.com", // Placeholder email
+            policies: [],
+            isSenate: true,
+          })),
         ],
       };
 
-      if (electorate.candidates.length > 0) {
-        onContinue(electorate);
-      } else if (mappingData.length > 0) {
-        setInfo("We found your electorate information, but no candidate data is available. Please try another postcode or continue with the electorate information we found.");
-        
-        // Create a minimal electorate object to continue with
-        const minimalElectorate: Electorate = {
-          id: postcode,
-          name: primaryMapping.electorate,
-          state: primaryMapping.state,
-          candidates: [{
-            id: "placeholder",
-            name: "Representative for " + primaryMapping.electorate,
-            party: "Placeholder",
-            email: "contact@example.com",
-            policies: []
-          }]
-        };
-        
-        // Option to continue with just the electorate info
+      if (electorate.candidates.length === 0) {
+        setInfo("We found your electorate information, but no candidate data is available yet.");
         toast({
-          title: "Limited Data Available",
-          description: "You can continue with basic electorate information or try another postcode.",
-          action: (
-            <Button 
-              variant="outline" 
-              onClick={() => onContinue(minimalElectorate)}
-              className="bg-aus-green text-white hover:bg-aus-green/90"
-            >
-              Continue Anyway
-            </Button>
-          ),
+          title: "No Candidates Found",
+          description: `Found electorate ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
         });
+      } else {
+        toast({
+          title: "Found your representatives",
+          description: `Found ${houseData?.length || 0} House candidates and ${senateData?.length || 0} Senate candidates.`,
+        });
+        onContinue(electorate);
       }
+
     } catch (err) {
       console.error("Error searching candidates:", err);
       setError("Error searching for candidates. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch candidate data. Please try again.",
+      });
     } finally {
       setIsSearching(false);
     }

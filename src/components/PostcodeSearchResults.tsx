@@ -107,13 +107,46 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
         </Alert>
       )}
 
-      {/* Debug information */}
+      {/* Enhanced debug information panel */}
       {debug && (
-        <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-300">
+        <div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
           <h3 className="font-mono text-sm font-semibold mb-2">Debug Information:</h3>
-          <pre className="text-xs overflow-auto p-2 bg-gray-800 text-white rounded">
-            {JSON.stringify(debug, null, 2)}
-          </pre>
+          
+          <div className="space-y-2">
+            <div className="p-2 bg-white rounded border">
+              <p className="font-mono text-xs">Input: {debug.input}</p>
+              <p className="font-mono text-xs">Chamber: {debug.chamberType || "Both"}</p>
+            </div>
+            
+            {debug.steps?.map((step: any, index: number) => (
+              <div key={index} className="p-2 bg-white rounded border">
+                <p className="font-semibold text-xs">{step.step}</p>
+                {step.query && <p className="font-mono text-xs">Query: {step.query}</p>}
+                {step.count !== undefined && <p className="font-mono text-xs">Count: {step.count}</p>}
+                {step.error && (
+                  <div className="mt-1 p-1 bg-red-50 rounded text-xs font-mono">
+                    Error: {JSON.stringify(step.error)}
+                  </div>
+                )}
+                {step.targetElectorate && (
+                  <p className="font-mono text-xs">Target: {step.targetElectorate}</p>
+                )}
+                {step.uniqueElectorates && (
+                  <p className="font-mono text-xs">Electorates: {JSON.stringify(step.uniqueElectorates)}</p>
+                )}
+                {step.uniqueStates && (
+                  <p className="font-mono text-xs">States: {JSON.stringify(step.uniqueStates)}</p>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <details className="mt-2">
+            <summary className="cursor-pointer text-xs font-mono text-blue-600">Show Full Debug Data</summary>
+            <pre className="mt-2 text-xs overflow-auto p-2 bg-gray-800 text-white rounded h-64">
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
     </>

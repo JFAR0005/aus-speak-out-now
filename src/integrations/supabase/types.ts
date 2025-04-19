@@ -41,21 +41,21 @@ export type Database = {
           electorate: string
           lgacode: string | null
           locality: string | null
-          postcode: string
+          postcode: number
           state: string
         }
         Insert: {
           electorate: string
           lgacode?: string | null
           locality?: string | null
-          postcode: string
+          postcode: number
           state: string
         }
         Update: {
           electorate?: string
           lgacode?: string | null
           locality?: string | null
-          postcode?: string
+          postcode?: number
           state?: string
         }
         Relationships: []

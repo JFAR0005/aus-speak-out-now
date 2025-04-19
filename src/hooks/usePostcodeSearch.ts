@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -103,49 +102,111 @@ export const usePostcodeSearch = (
         debugInfo.steps.push({ step: "Starting House candidate search", electorates: uniqueElectorates });
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // For each electorate, perform a separate query with case-insensitive matching
-        const housePromises = uniqueElectorates.map(async (electorate) => {
-          // Using exact (non-parameterized) column name for debugging clarity
-          console.log(`Querying for House candidates in electorate: "${electorate}"`);
-          
-          // FIXED: Use ilike for case-insensitive comparisons
-          const { data, error } = await supabase
+        // CRITICAL FIX: Try multiple query approaches to find candidates
+        for (const electorateName of uniqueElectorates) {
+          // Try exact match first (case insensitive)
+          const { data: exactData, error: exactError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
-            .ilike('electorate', electorate);
+            .ilike('electorate', electorateName);
           
-          if (error) {
-            console.error(`Error querying for electorate ${electorate}:`, error);
+          if (exactError) {
+            console.error(`Error querying for electorate ${electorateName}:`, exactError);
             debugInfo.steps.push({ 
-              step: `Error querying for House candidates in electorate ${electorate}`, 
-              error 
+              step: `Error querying for House candidates in electorate "${electorateName}"`, 
+              error: exactError 
             });
-            return [];
+            continue;
           }
           
-          debugInfo.steps.push({ 
-            step: `Results for House candidates in electorate "${electorate}"`, 
-            count: data?.length || 0,
-            results: data
-          });
+          if (exactData && exactData.length > 0) {
+            debugInfo.steps.push({ 
+              step: `Found House candidates with exact match for "${electorateName}"`, 
+              count: exactData.length,
+              results: exactData
+            });
+            houseData = [...houseData, ...exactData];
+            console.log(`Found ${exactData.length} House candidates for ${electorateName}`);
+            continue;
+          }
           
-          console.log(`Results for electorate ${electorate}:`, data);
-          return data || [];
-        });
+          // Try direct SQL query if Supabase query doesn't yield results
+          console.log(`No results with direct match, trying additional queries for "${electorateName}"`);
+          
+          // Try with LOWER and TRIM
+          const { data: lowercaseData, error: lowercaseError } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .filter('electorate', 'ilike', `%${electorateName.toLowerCase().trim()}%`);
+          
+          if (!lowercaseError && lowercaseData && lowercaseData.length > 0) {
+            debugInfo.steps.push({ 
+              step: `Found House candidates with lowercase match for "${electorateName}"`, 
+              count: lowercaseData.length,
+              results: lowercaseData
+            });
+            houseData = [...houseData, ...lowercaseData];
+            console.log(`Found ${lowercaseData.length} House candidates with lowercase match for ${electorateName}`);
+            continue;
+          }
+          
+          // Try with partial match
+          const { data: partialData, error: partialError } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .filter('electorate', 'ilike', `%${electorateName}%`);
+          
+          if (!partialError && partialData && partialData.length > 0) {
+            debugInfo.steps.push({ 
+              step: `Found House candidates with partial match for "${electorateName}"`, 
+              count: partialData.length,
+              results: partialData
+            });
+            houseData = [...houseData, ...partialData];
+            console.log(`Found ${partialData.length} House candidates with partial match for ${electorateName}`);
+            continue;
+          }
+          
+          // Log if no candidates found for this electorate
+          debugInfo.steps.push({ 
+            step: `No House candidates found for "${electorateName}" after multiple query attempts`, 
+            electorate: electorateName
+          });
+          console.log(`No House candidates found for "${electorateName}" after multiple query attempts`);
+        }
         
-        // Wait for all queries to complete
-        const results = await Promise.all(housePromises);
-        
-        // Merge all results
-        houseData = results.flat();
         debugInfo.steps.push({ 
-          step: "Combined House candidates", 
+          step: "Final House candidates results", 
           count: houseData.length,
           houseData
         });
         
-        console.log("Combined House candidates:", houseData);
+        console.log("Final House candidates:", houseData);
         setHouseResults(houseData);
+          
+        // If no candidates found using our query strategies, try one more approach
+        if (houseData.length === 0 && uniqueElectorates.length > 0) {
+          // Get all candidates as a fallback to see what's in the database
+          const { data: allCandidates, error: allError } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .limit(20);
+            
+          if (!allError && allCandidates) {
+            debugInfo.steps.push({
+              step: "Fallback query - sample candidates in database",
+              count: allCandidates.length,
+              sampleCandidates: allCandidates.slice(0, 5)
+            });
+            
+            // Get distinct electorates in the database for comparison
+            const dbElectorates = [...new Set(allCandidates.map(c => c.electorate))];
+            debugInfo.steps.push({
+              step: "Sample electorates in database",
+              electorates: dbElectorates.slice(0, 10)
+            });
+          }
+        }
       }
 
       // Step 4: If we're searching for Senate candidates, look them up by state
@@ -178,6 +239,21 @@ export const usePostcodeSearch = (
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
           setSenateResults(senateData);
+        }
+      }
+
+      // Step A: Add a raw SQL query for additional debugging if no candidates were found
+      if ((chamberType === "house" || chamberType === null) && houseData.length === 0) {
+        const targetElectorate = uniqueElectorates[0];
+        const { data: rawQueryData, error: rawQueryError } = await supabase
+          .rpc('debug_house_candidates', { electorate_param: targetElectorate });
+          
+        if (!rawQueryError) {
+          debugInfo.steps.push({
+            step: "Raw SQL query for debugging",
+            targetElectorate,
+            results: rawQueryData
+          });
         }
       }
 

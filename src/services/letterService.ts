@@ -8,13 +8,28 @@ const formatDate = (date: Date): string => {
   });
 };
 
-// Generate a dynamic greeting based on candidate information
-const generateGreeting = (candidate: Candidate): string => {
-  const title = candidate.party === "Australian Greens" ? "Senator" : "Hon.";
-  return `Dear ${title} ${candidate.name}`;
+// Generate appropriate title based on candidate info
+const generateTitle = (candidate: Candidate): string => {
+  // Only use official titles if we're certain of their current role
+  if (candidate.role === "senator") {
+    return "Senator";
+  } else if (candidate.role === "mp") {
+    return "Hon.";
+  }
+  // Default to Mr/Ms based on known preferences, or just use full name
+  return ""; // Will be combined with name later
 };
 
-// Generate a subject line based on concern
+// Clean and improve input text
+const cleanInputText = (text: string): string => {
+  // Remove multiple spaces and normalize line endings
+  text = text.replace(/\s+/g, ' ').trim();
+  // Ensure first letter of sentences is capitalized
+  text = text.replace(/(^\w|\.[\s\n]\w)/g, letter => letter.toUpperCase());
+  return text;
+};
+
+// Generate a formal subject line based on concern
 const generateSubjectLine = (concern: string): string => {
   // Extract key topic for subject line
   const topics = {
@@ -44,7 +59,7 @@ const generateSubjectLine = (concern: string): string => {
   return `Re: Concerns regarding ${concernWords}...`;
 };
 
-// Extract key insights from uploaded document - improved with better error handling and optimization
+// Extract key insights from uploaded document - improved with better error handling
 const extractDocumentInsights = (documentText: string | null, concern: string): string => {
   if (!documentText || documentText.trim() === '') {
     return '';
@@ -82,11 +97,11 @@ const extractDocumentInsights = (documentText: string | null, concern: string): 
     return `I've reviewed the document you've provided which contains information about ${concern}. `;
   } catch (error) {
     console.error("Error extracting document insights:", error);
-    return `I've reviewed your document, but couldn't extract specific insights. `;
+    return '';
   }
 };
 
-// Generate a letter for an individual candidate
+// Improved letter generation for a candidate
 const generateLetterForCandidate = (
   candidate: Candidate,
   concern: string,
@@ -94,55 +109,55 @@ const generateLetterForCandidate = (
   tone: string
 ): string => {
   // Get candidate-specific information
-  const partyInfo = candidate.party ? ` of the ${candidate.party}` : '';
-  const candidateTitle = candidate.chamber === 'senate' ? 'Senator' : 'MP';
+  const candidateTitle = generateTitle(candidate);
+  const fullTitle = candidateTitle ? `${candidateTitle} ${candidate.name}` : candidate.name;
+  const partyInfo = candidate.party ? ` representing the ${candidate.party}` : '';
+  const candidateRole = "prospective elected representative for " + (candidate.electorate || "your area");
   
-  // Generate the letter parts based on the prompt
-  const greeting = `Dear ${candidateTitle} ${candidate.name}`;
+  // Generate the greeting
+  const greeting = `Dear ${fullTitle}`;
   const subject = generateSubjectLine(concern);
   
-  // Generate different opening paragraphs based on tone and concern
+  // Clean and structure the concern text
+  let cleanedConcern = cleanInputText(concern);
+  
+  // Generate different opening paragraphs based on tone
   let opening = '';
   if (tone === 'formal') {
-    opening = `I am writing to express my concerns regarding ${concern}. ${documentInsights}`;
+    opening = `I write to you as a constituent regarding ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'passionate') {
-    opening = `I feel compelled to write to you about ${concern}, an issue that deeply affects our community. ${documentInsights}`;
+    opening = `As a deeply concerned member of our community, I must address ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'direct') {
-    opening = `${concern} requires immediate attention and action from our elected representatives like yourself. ${documentInsights}`;
+    opening = `I seek your position on ${cleanedConcern}. ${documentInsights}`;
   } else if (tone === 'hopeful') {
-    opening = `I believe that together, we can make meaningful progress on ${concern}. ${documentInsights}`;
+    opening = `I believe that as our ${candidateRole}, you can make a real difference regarding ${cleanedConcern}. ${documentInsights}`;
   }
   
   // Create a body that varies by candidate's party and the issue
   let body = '';
   
-  // Vary the body based on candidate party
-  if (candidate.party?.includes('Labor')) {
-    body = `As a member of the Labor Party with its historic commitment to social justice, I believe you are well-positioned to address these concerns. ${getRandomStatistic(concern)}\n\nThe impact of this issue on our community cannot be overstated. Many families in your electorate are directly affected, and they are looking to you for leadership.`;
-  } else if (candidate.party?.includes('Liberal')) {
-    body = `As a member of the Liberal Party with its commitment to individual freedom and responsibility, I believe you can take a strong stance on this issue. ${getRandomStatistic(concern)}\n\nYour constituents are concerned about the economic and social impacts this issue is having on our community, and we need sensible policy solutions.`;
-  } else if (candidate.party?.includes('Greens')) {
-    body = `As a representative of the Greens with your strong stance on social and environmental justice, I believe you can champion this cause. ${getRandomStatistic(concern)}\n\nThis issue aligns with your party's values of sustainability and equality, and your voice on this matter would be significant.`;
+  if (candidate.party) {
+    body = `As a ${candidateRole}${partyInfo}, your stance on this issue is crucial. ${getRandomStatistic(concern)}\n\nThe impact of this issue on our community cannot be overstated, and your leadership could make a significant difference.`;
   } else {
-    body = `As our elected representative, you have a unique opportunity to address this important issue. ${getRandomStatistic(concern)}\n\nMany in our community are directly impacted by this issue, and we are looking to you for leadership and action.`;
+    body = `As a ${candidateRole}, you have a unique opportunity to address this important issue. ${getRandomStatistic(concern)}\n\nOur community looks to its leaders for meaningful action on this matter.`;
   }
   
   // Create a closing that asks for specific action
   let closing = '';
   if (tone === 'formal') {
-    closing = `I respectfully request that you consider these concerns and provide your position on this issue. Would it be possible to arrange a meeting to discuss this matter further?`;
+    closing = `I would appreciate your response outlining your position on this matter. Would you be available to discuss this issue in more detail?`;
   } else if (tone === 'passionate') {
-    closing = `This issue deeply matters to your constituents. Please let me know how you plan to champion this cause and what meaningful actions you will take in Parliament.`;
+    closing = `Please share your detailed position on this issue and what specific actions you plan to take if elected.`;
   } else if (tone === 'direct') {
-    closing = `I specifically request that you: 1) Clarify your position on this issue, 2) Detail what actions you will take, and 3) Commit to a timeline for these actions.`;
+    closing = `I request that you: 1) Clarify your position on this issue, 2) Detail your proposed actions, and 3) Provide a timeline for implementation.`;
   } else if (tone === 'hopeful') {
-    closing = `I believe your support on this issue could make a meaningful difference. Would you be willing to meet with me to discuss how we might work together toward positive solutions?`;
+    closing = `I would welcome the opportunity to discuss how we might work together to address this important issue.`;
   }
   
   // Generate sign-off
   const signOff = tone === 'formal' ? 'Yours sincerely,' : 
-                 tone === 'passionate' ? 'With sincere appreciation,' :
-                 tone === 'direct' ? 'Regards,' : 'Yours faithfully,';
+                 tone === 'passionate' ? 'With sincere regards,' :
+                 tone === 'direct' ? 'Regards,' : 'Best regards,';
   
   // Assemble the letter with proper formatting
   const letter = `[Your Name]
@@ -150,10 +165,10 @@ const generateLetterForCandidate = (
 [Your Email]
 [Your Phone]
 
-${candidate.name}
-${candidate.email}
-
 ${formatDate(new Date())}
+
+${fullTitle}
+${candidate.email}
 
 ${greeting},
 

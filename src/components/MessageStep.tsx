@@ -346,6 +346,17 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 Supported formats: PDF, DOC, DOCX, TXT (max 5MB)
               </p>
               
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <div className="flex gap-2 items-start">
+                  <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                  <p className="text-xs text-amber-700">
+                    Note: We will attempt to include relevant statistics or information from any file you upload, 
+                    but we do not guarantee accuracy or completeness. Please review and fact-check the generated 
+                    letter carefully before sending.
+                  </p>
+                </div>
+              </div>
+              
               {fileError && (
                 <Alert variant="destructive" className="mt-2">
                   <AlertCircle className="h-4 w-4" />

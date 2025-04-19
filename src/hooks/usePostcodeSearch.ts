@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -40,12 +39,9 @@ export const usePostcodeSearch = (
     try {
       console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
       
-      // Step 1: Fetch postcode mappings
       let mappingQuery = supabase.from('postcode_mappings').select('*');
       
       if (/^\d{4}$/.test(postcode)) {
-        // If input is a 4-digit postcode
-        // FIX: Convert string postcode to number for the database query
         const numericPostcode = Number(postcode);
         mappingQuery = mappingQuery.eq('postcode', numericPostcode);
         debugInfo.steps.push({ step: "Searching by exact postcode", query: postcode });
@@ -83,7 +79,6 @@ export const usePostcodeSearch = (
       debugInfo.steps.push({ step: "Found mappings", count: mappingData.length, mappings: mappingData });
       console.log("Found mappings:", mappingData);
 
-      // Step 2: Extract unique electorates and states from postcode mappings
       const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
       
@@ -100,14 +95,11 @@ export const usePostcodeSearch = (
       let houseData: any[] = [];
       let senateData: any[] = [];
 
-      // Step 3: If we're searching for House candidates, look them up by electorate
       if (chamberType === "house" || chamberType === null) {
         debugInfo.steps.push({ step: "Starting House candidate search", electorates: uniqueElectorates });
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // CRITICAL FIX: Try multiple query approaches to find candidates
         for (const electorateName of uniqueElectorates) {
-          // Try exact match first (case insensitive)
           const { data: exactData, error: exactError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
@@ -133,10 +125,8 @@ export const usePostcodeSearch = (
             continue;
           }
           
-          // Try direct SQL query if Supabase query doesn't yield results
           console.log(`No results with direct match, trying additional queries for "${electorateName}"`);
           
-          // Try with LOWER and TRIM
           const { data: lowercaseData, error: lowercaseError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
@@ -153,7 +143,6 @@ export const usePostcodeSearch = (
             continue;
           }
           
-          // Try with partial match
           const { data: partialData, error: partialError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
@@ -170,7 +159,6 @@ export const usePostcodeSearch = (
             continue;
           }
           
-          // Log if no candidates found for this electorate
           debugInfo.steps.push({ 
             step: `No House candidates found for "${electorateName}" after multiple query attempts`, 
             electorate: electorateName
@@ -187,9 +175,7 @@ export const usePostcodeSearch = (
         console.log("Final House candidates:", houseData);
         setHouseResults(houseData);
           
-        // If no candidates found using our query strategies, try one more approach
         if (houseData.length === 0 && uniqueElectorates.length > 0) {
-          // Get all candidates as a fallback to see what's in the database
           const { data: allCandidates, error: allError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
@@ -202,7 +188,6 @@ export const usePostcodeSearch = (
               sampleCandidates: allCandidates.slice(0, 5)
             });
             
-            // Get distinct electorates in the database for comparison
             const dbElectorates = [...new Set(allCandidates.map(c => c.electorate))];
             debugInfo.steps.push({
               step: "Sample electorates in database",
@@ -212,7 +197,6 @@ export const usePostcodeSearch = (
         }
       }
 
-      // Step 4: If we're searching for Senate candidates, look them up by state
       if (chamberType === "senate" || chamberType === null) {
         debugInfo.steps.push({ step: "Starting Senate candidate search", states: uniqueStates });
         console.log("Searching for Senate candidates in states:", uniqueStates);
@@ -245,30 +229,33 @@ export const usePostcodeSearch = (
         }
       }
 
-      // Step A: Add a raw SQL query for additional debugging if no candidates were found
       if ((chamberType === "house" || chamberType === null) && houseData.length === 0) {
         const targetElectorate = uniqueElectorates[0];
-        // FIX: Fixed the targetElectorate being passed as a parameter
+        
         try {
-          const { data: rawQueryData, error: rawQueryError } = await supabase
-            .rpc('debug_house_candidates', { electorate_param: targetElectorate });
+          const { data: directQueryData, error: directQueryError } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .limit(10);
             
-          if (!rawQueryError) {
+          if (!directQueryError && directQueryData) {
+            const sampleElectorates = directQueryData.map(c => c.electorate);
+            
             debugInfo.steps.push({
-              step: "Raw SQL query for debugging",
+              step: "Direct database query for debugging",
               targetElectorate,
-              results: rawQueryData
+              sampleElectorates,
+              message: "These are sample electorates in the database. Check if they match your search term."
             });
           }
-        } catch (rpcError) {
+        } catch (queryError) {
           debugInfo.steps.push({
-            step: "RPC function not available",
-            error: rpcError
+            step: "Error in direct database query",
+            error: queryError
           });
         }
       }
 
-      // Step 5: Create the electorate object with candidate data
       const electorate: Electorate = {
         id: postcode,
         name: primaryMapping.electorate,
@@ -303,7 +290,6 @@ export const usePostcodeSearch = (
 
       const candidateCount = electorate.candidates.length;
       
-      // Step 6: Provide feedback based on search results
       if (candidateCount === 0) {
         if (chamberType === "house") {
           setInfo(`We found your electorate (${primaryMapping.electorate} in ${primaryMapping.state}), but no House candidate data is available yet.`);
@@ -378,7 +364,7 @@ export const usePostcodeSearch = (
         description: "Failed to fetch candidate data. Please try again.",
       });
     } finally {
-      setDebug(debugInfo);  // Always set debug info
+      setDebug(debugInfo);
       setIsSearching(false);
     }
   };
@@ -391,6 +377,6 @@ export const usePostcodeSearch = (
     houseResults,
     senateResults,
     handleSearch,
-    debug  // Return debug info
+    debug
   };
 };

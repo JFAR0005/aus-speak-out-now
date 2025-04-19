@@ -33,10 +33,11 @@ export const usePostcodeSearch = (
     try {
       console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
       
-      // Fetch postcode mappings
+      // Step 1: Fetch postcode mappings
       let mappingQuery = supabase.from('postcode_mappings').select('*');
       
       if (/^\d{4}$/.test(postcode)) {
+        // If input is a 4-digit postcode
         mappingQuery = mappingQuery.eq('postcode', postcode);
       } 
       else if (postcode.length >= 3) {
@@ -58,7 +59,7 @@ export const usePostcodeSearch = (
       }
 
       if (!mappingData || mappingData.length === 0) {
-        setError("We couldn't find any candidates based on that input. Please check your postcode, suburb, or try a nearby area.");
+        setError("We couldn't find any location based on that input. Please check your postcode, suburb, or try a nearby area.");
         setIsSearching(false);
         return;
       }
@@ -66,7 +67,7 @@ export const usePostcodeSearch = (
       setMappings(mappingData);
       console.log("Found mappings:", mappingData);
 
-      // Extract unique electorates and states from postcode mappings
+      // Step 2: Extract unique electorates and states from postcode mappings
       const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
       
@@ -77,16 +78,18 @@ export const usePostcodeSearch = (
       let houseData: any[] = [];
       let senateData: any[] = [];
 
+      // Step 3: If we're searching for House candidates, look them up by electorate
       if (chamberType === "house" || chamberType === null) {
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // Create a query for each electorate with case-insensitive matching
-        const electoratePromises = uniqueElectorates.map(async (electorate) => {
+        // For each electorate, perform a query with case-insensitive matching
+        const housePromises = uniqueElectorates.map(async (electorate) => {
+          console.log(`Querying for House candidates in electorate: "${electorate}"`);
           const { data, error } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
             .ilike('electorate', electorate);
-            
+          
           if (error) {
             console.error(`Error querying for electorate ${electorate}:`, error);
             return [];
@@ -97,13 +100,15 @@ export const usePostcodeSearch = (
         });
         
         // Wait for all queries to complete
-        const results = await Promise.all(electoratePromises);
+        const results = await Promise.all(housePromises);
         
         // Merge all results
         houseData = results.flat();
         console.log("Combined House candidates:", houseData);
+        setHouseResults(houseData);
       }
 
+      // Step 4: If we're searching for Senate candidates, look them up by state
       if (chamberType === "senate" || chamberType === null) {
         console.log("Searching for Senate candidates in states:", uniqueStates);
         const { data: senateResults, error: senateError } = await supabase
@@ -120,12 +125,11 @@ export const usePostcodeSearch = (
         
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
+          setSenateResults(senateData);
         }
       }
 
-      setHouseResults(houseData);
-      setSenateResults(senateData);
-
+      // Step 5: Create the electorate object with candidate data
       const electorate: Electorate = {
         id: postcode,
         name: primaryMapping.electorate,
@@ -135,7 +139,7 @@ export const usePostcodeSearch = (
             id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
             name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
             party: candidate.partyBallotName || 'Independent',
-            email: "contact@example.com",
+            email: "contact@example.com", 
             policies: [],
             chamber: "house" as ChamberType,
             division: candidate.electorate,
@@ -154,20 +158,43 @@ export const usePostcodeSearch = (
 
       const candidateCount = electorate.candidates.length;
       
+      // Step 6: Provide feedback based on search results
       if (candidateCount === 0) {
-        setInfo(`We found your location (${primaryMapping.electorate} in ${primaryMapping.state}), but no candidate data is available yet.`);
-        toast({
-          title: "No Candidates Found",
-          description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
-        });
+        if (chamberType === "house") {
+          setInfo(`We found your electorate (${primaryMapping.electorate} in ${primaryMapping.state}), but no House candidate data is available yet.`);
+          toast({
+            title: "No Candidates Found",
+            description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no House candidate data is available yet.`,
+          });
+        } else if (chamberType === "senate") {
+          setInfo(`We found your state (${primaryMapping.state}), but no Senate candidate data is available yet.`);
+          toast({
+            title: "No Candidates Found",
+            description: `Found your location in ${primaryMapping.state}, but no Senate candidate data is available yet.`,
+          });
+        } else {
+          setInfo(`We found your location (${primaryMapping.electorate} in ${primaryMapping.state}), but no candidate data is available yet.`);
+          toast({
+            title: "No Candidates Found",
+            description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
+          });
+        }
       } else {
-        const chamberText = chamberType === "senate" ? "Senate" : chamberType === "house" ? "House" : "House and Senate";
         const houseCount = chamberType !== "senate" ? houseData.length : 0;
         const senateCount = chamberType !== "house" ? senateData.length : 0;
         
+        let description = "";
+        if (chamberType === "house") {
+          description = `Found ${houseCount} House candidates for ${primaryMapping.electorate} in ${primaryMapping.state}.`;
+        } else if (chamberType === "senate") {
+          description = `Found ${senateCount} Senate candidates for ${primaryMapping.state}.`;
+        } else {
+          description = `Found ${houseCount} House and ${senateCount} Senate candidates for ${primaryMapping.state}.`;
+        }
+        
         toast({
           title: "Found your representatives",
-          description: `Found ${houseCount} House and ${senateCount} Senate candidates for ${primaryMapping.state}.`,
+          description: description,
         });
         
         onContinue(electorate);

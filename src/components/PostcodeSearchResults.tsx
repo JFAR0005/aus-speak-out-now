@@ -46,6 +46,9 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
               {mapping.locality && (
                 <p><span className="font-medium">Locality:</span> {mapping.locality}</p>
               )}
+              {mapping.postcode && (
+                <p><span className="font-medium">Postcode:</span> {mapping.postcode}</p>
+              )}
             </div>
           ))}
         </div>
@@ -93,8 +96,11 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
         <Alert variant="default" className="mt-4 bg-yellow-50 border-yellow-200">
           <Info className="h-4 w-4 text-yellow-500" />
           <AlertDescription className="text-yellow-700">
-            We found your location, but couldn't find any candidates for that area. 
-            Please try another postcode or suburb nearby.
+            {chamberType === "house" 
+              ? `We found your electorate ${mappings[0].electorate}, but couldn't find any House candidates for that area.` 
+              : chamberType === "senate"
+                ? `We found your state ${mappings[0].state}, but couldn't find any Senate candidates for that area.`
+                : `We found your location, but couldn't find any candidates for that area.`}
           </AlertDescription>
         </Alert>
       )}

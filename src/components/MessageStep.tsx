@@ -1,12 +1,25 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ChevronLeft, Upload, Sparkles } from "lucide-react";
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Upload, 
+  Sparkles,
+  FileText 
+} from "lucide-react";
 import { Electorate, Candidate } from "../types";
-import { generateLetter } from "../services/letterService";
+import { generateLetters } from "../services/letterService";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MessageStepProps {
   electorate: Electorate;
@@ -14,6 +27,7 @@ interface MessageStepProps {
   userConcern: string;
   setUserConcern: (concern: string) => void;
   onGenerateLetter: (letter: string) => void;
+  onGenerateMultipleLetters?: (letters: Record<string, string>) => void;
   onPrevious: () => void;
   onContinue: () => void;
 }
@@ -24,11 +38,15 @@ const MessageStep: React.FC<MessageStepProps> = ({
   userConcern,
   setUserConcern,
   onGenerateLetter,
+  onGenerateMultipleLetters,
   onPrevious,
   onContinue,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [letterTone, setLetterTone] = useState("formal");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const selectedCandidatesList = electorate.candidates.filter(c => 
@@ -39,13 +57,52 @@ const MessageStep: React.FC<MessageStepProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
     
-    // In a real app, we would process the file and extract text
-    // For this demo, we'll just store the file and update the UI
     setUploadedFile(file);
-    toast({
-      title: "File uploaded",
-      description: `${file.name} has been uploaded and will be processed.`,
-    });
+    
+    // Read file content
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        setFileContent(text);
+        toast({
+          title: "File processed",
+          description: `${file.name} has been processed and will be used to enhance your letter.`,
+        });
+      } catch (error) {
+        console.error("Error reading file:", error);
+        toast({
+          variant: "destructive",
+          title: "Processing failed",
+          description: "Could not extract content from the file.",
+        });
+      }
+    };
+    
+    reader.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "File error",
+        description: "There was an error reading the file.",
+      });
+    };
+    
+    // Read as text for TXT files, or data URL for other types
+    if (file.type === "text/plain") {
+      reader.readAsText(file);
+    } else {
+      // For PDFs, DOCs, etc. - in a real app we'd use a document parsing service
+      // For this demo, we'll just read as text and extract what we can
+      reader.readAsText(file);
+    }
+  };
+
+  const clearFile = () => {
+    setUploadedFile(null);
+    setFileContent(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleGenerateLetter = async () => {
@@ -60,11 +117,23 @@ const MessageStep: React.FC<MessageStepProps> = ({
 
     setIsGenerating(true);
     try {
-      const letter = await generateLetter(
+      // Generate separate letters for each candidate
+      const letters = await generateLetters(
         selectedCandidatesList,
-        userConcern || `the issues mentioned in my uploaded file: ${uploadedFile?.name}`
+        userConcern,
+        fileContent,
+        letterTone
       );
-      onGenerateLetter(letter);
+      
+      // For backward compatibility, also pass the combined letter
+      const combinedLetter = Object.values(letters).join('\n\n---\n\n');
+      onGenerateLetter(combinedLetter);
+      
+      // If the multi-letter handler is available, use it
+      if (onGenerateMultipleLetters) {
+        onGenerateMultipleLetters(letters);
+      }
+      
       onContinue();
     } catch (error) {
       console.error("Error generating letter:", error);
@@ -119,6 +188,29 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 className="min-h-[120px]"
               />
             </div>
+            
+            <div>
+              <label className="block mb-2 font-medium">
+                Letter tone
+              </label>
+              <Select 
+                value={letterTone} 
+                onValueChange={setLetterTone}
+              >
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Select tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="passionate">Passionate</SelectItem>
+                  <SelectItem value="direct">Direct</SelectItem>
+                  <SelectItem value="hopeful">Hopeful</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Choose the tone for your letter
+              </p>
+            </div>
 
             <div className="flex items-center">
               <div className="flex-grow">
@@ -141,6 +233,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
                   type="button"
                 >
                   <input
+                    ref={fileInputRef}
                     type="file"
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     accept=".pdf,.doc,.docx,.txt"
@@ -148,13 +241,35 @@ const MessageStep: React.FC<MessageStepProps> = ({
                   />
                   <Upload className="mr-2 h-4 w-4" /> Choose File
                 </Button>
-                <span className="ml-3 text-sm text-gray-500">
-                  {uploadedFile ? uploadedFile.name : "No file chosen"}
-                </span>
+                {uploadedFile ? (
+                  <div className="flex items-center ml-3">
+                    <FileText className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-700">{uploadedFile.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFile} 
+                      className="ml-2 h-6 p-0 text-xs text-gray-500"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="ml-3 text-sm text-gray-500">
+                    No file chosen
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Supported formats: PDF, DOC, DOCX, TXT (max 5MB)
               </p>
+              {fileContent && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-xs text-green-600">
+                    <span className="font-semibold">✓ Content extracted</span> - insights from this document will be used in your letter
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

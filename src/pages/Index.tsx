@@ -27,6 +27,7 @@ const Index = () => {
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [userConcern, setUserConcern] = useState("");
   const [generatedLetter, setGeneratedLetter] = useState("");
+  const [individualLetters, setIndividualLetters] = useState<Record<string, string>>({});
 
   // Step navigation handlers
   const handleChamberSelection = (chamber: ChamberType) => {
@@ -74,9 +75,18 @@ const Index = () => {
     });
   };
 
-  // Letter generation handler
+  // Letter generation handlers
   const handleGenerateLetter = (letter: string) => {
     setGeneratedLetter(letter);
+  };
+
+  const handleGenerateMultipleLetters = (letters: Record<string, string>) => {
+    setIndividualLetters(letters);
+  };
+
+  // Update individual letters
+  const handleUpdateIndividualLetters = (letters: Record<string, string>) => {
+    setIndividualLetters(letters);
   };
 
   // Regenerate letter handler
@@ -126,6 +136,7 @@ const Index = () => {
               userConcern={userConcern}
               setUserConcern={setUserConcern}
               onGenerateLetter={handleGenerateLetter}
+              onGenerateMultipleLetters={handleGenerateMultipleLetters}
               onPrevious={handleBackToStep3}
               onContinue={handleContinueToStep5}
             />
@@ -136,7 +147,9 @@ const Index = () => {
               electorate={selectedElectorate}
               selectedCandidates={selectedCandidates}
               generatedLetter={generatedLetter}
+              individualLetters={individualLetters}
               onEditLetter={setGeneratedLetter}
+              onUpdateIndividualLetters={handleUpdateIndividualLetters}
               onRegenerateLetter={handleRegenerateLetter}
               onPrevious={handleBackToStep4}
             />

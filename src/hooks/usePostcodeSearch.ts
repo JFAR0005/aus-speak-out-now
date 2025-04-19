@@ -67,10 +67,10 @@ export const usePostcodeSearch = (
       console.log("Found mappings:", mappingData);
 
       // Extract unique electorates and states from postcode mappings
-      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate.toLowerCase().trim()))];
+      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
       const uniqueStates = [...new Set(mappingData.map(m => m.state))];
       
-      console.log("Unique electorates (lowercase and trimmed):", uniqueElectorates);
+      console.log("Unique electorates:", uniqueElectorates);
       console.log("Unique states:", uniqueStates);
 
       const primaryMapping = mappingData[0];
@@ -80,42 +80,28 @@ export const usePostcodeSearch = (
       if (chamberType === "house" || chamberType === null) {
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
-        // Fix: Use ilike filter for case-insensitive matching
-        let houseQuery = supabase
-          .from('House of Representatives Candidates')
-          .select('*');
-        
-        // Use proper filter syntax for multiple values
-        if (uniqueElectorates.length === 1) {
-          // For a single electorate, use ilike for case-insensitive matching
-          houseQuery = houseQuery.ilike('electorate', uniqueElectorates[0]);
-        } else {
-          // For multiple electorates, build a more complex query with or conditions
-          const filters = uniqueElectorates.map((electorate, index) => {
-            if (index === 0) return `electorate.ilike.${electorate}`;
-            return `electorate.ilike.${electorate}`;
-          });
-          
-          if (filters.length > 0) {
-            houseQuery = houseQuery.or(filters.join(','));
+        // Create a query for each electorate with case-insensitive matching
+        const electoratePromises = uniqueElectorates.map(async (electorate) => {
+          const { data, error } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .ilike('electorate', electorate);
+            
+          if (error) {
+            console.error(`Error querying for electorate ${electorate}:`, error);
+            return [];
           }
-        }
+          
+          console.log(`Results for electorate ${electorate}:`, data);
+          return data || [];
+        });
         
-        const { data: houseResults, error: houseError } = await houseQuery;
-
-        if (houseError) {
-          console.error("House candidates query error:", houseError);
-          throw houseError;
-        }
+        // Wait for all queries to complete
+        const results = await Promise.all(electoratePromises);
         
-        console.log("House candidates found:", houseResults);
-        
-        if (houseResults && houseResults.length > 0) {
-          houseData = houseResults;
-        } else {
-          console.log("No House candidates found from database for electorates:", uniqueElectorates);
-          // No fallback candidates
-        }
+        // Merge all results
+        houseData = results.flat();
+        console.log("Combined House candidates:", houseData);
       }
 
       if (chamberType === "senate" || chamberType === null) {
@@ -134,9 +120,6 @@ export const usePostcodeSearch = (
         
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
-        } else {
-          console.log("No Senate candidates found from database for states:", uniqueStates);
-          // No fallback candidates
         }
       }
 
@@ -155,7 +138,7 @@ export const usePostcodeSearch = (
             email: "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,
-            division: candidate.electorate, // Keep using division key for backward compatibility
+            division: candidate.electorate,
           })) : []),
           ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
             id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,

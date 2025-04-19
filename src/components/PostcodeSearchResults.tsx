@@ -116,12 +116,18 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
             <div className="p-2 bg-white rounded border">
               <p className="font-mono text-xs">Input: {debug.input}</p>
               <p className="font-mono text-xs">Chamber: {debug.chamberType || "Both"}</p>
+              {debug.testQueryResults && (
+                <p className="font-mono text-xs bg-green-50 p-1 border border-green-200 rounded">
+                  Test Query Results: {debug.testQueryResults.length} candidates found for "Sydney"
+                </p>
+              )}
             </div>
             
             {debug.steps?.map((step: any, index: number) => (
               <div key={index} className="p-2 bg-white rounded border">
                 <p className="font-semibold text-xs">{step.step}</p>
                 {step.query && <p className="font-mono text-xs">Query: {step.query}</p>}
+                {step.queryString && <p className="font-mono text-xs bg-blue-50 p-1 rounded">Exact Query String: "{step.queryString}"</p>}
                 {step.count !== undefined && <p className="font-mono text-xs">Count: {step.count}</p>}
                 {step.error && (
                   <div className="mt-1 p-1 bg-red-50 rounded text-xs font-mono">

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -42,6 +43,7 @@ export const usePostcodeSearch = (
       let mappingQuery = supabase.from('postcode_mappings').select('*');
       
       if (/^\d{4}$/.test(postcode)) {
+        // For numeric postcodes, convert to number for the query
         const numericPostcode = Number(postcode);
         mappingQuery = mappingQuery.eq('postcode', numericPostcode);
         debugInfo.steps.push({ step: "Searching by exact postcode", query: postcode });
@@ -95,22 +97,54 @@ export const usePostcodeSearch = (
       let houseData: any[] = [];
       let senateData: any[] = [];
 
+      // Perform a test query for "Sydney" to verify the database has records
+      try {
+        const { data: testSydneyResults, error: testSydneyError } = await supabase
+          .from('House of Representatives Candidates')
+          .select('*')
+          .ilike('electorate', 'Sydney');
+          
+        if (!testSydneyError) {
+          debugInfo.testQueryResults = testSydneyResults || [];
+          debugInfo.steps.push({ 
+            step: "Test query for 'Sydney'", 
+            count: testSydneyResults?.length || 0,
+            queryString: "Sydney"
+          });
+        }
+      } catch (testError) {
+        debugInfo.steps.push({ 
+          step: "Error in test query", 
+          error: testError
+        });
+      }
+
       if (chamberType === "house" || chamberType === null) {
         debugInfo.steps.push({ step: "Starting House candidate search", electorates: uniqueElectorates });
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
         for (const electorateName of uniqueElectorates) {
+          if (!electorateName) {
+            debugInfo.steps.push({ 
+              step: "Skipping empty electorate name", 
+            });
+            continue;
+          }
+          
+          // Try exact match first (case insensitive)
           const { data: exactData, error: exactError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
             .ilike('electorate', electorateName);
           
+          debugInfo.steps.push({ 
+            step: `Querying for electorate "${electorateName}"`, 
+            queryString: electorateName,
+            error: exactError || null
+          });
+          
           if (exactError) {
             console.error(`Error querying for electorate ${electorateName}:`, exactError);
-            debugInfo.steps.push({ 
-              step: `Error querying for House candidates in electorate "${electorateName}"`, 
-              error: exactError 
-            });
             continue;
           }
           
@@ -118,44 +152,67 @@ export const usePostcodeSearch = (
             debugInfo.steps.push({ 
               step: `Found House candidates with exact match for "${electorateName}"`, 
               count: exactData.length,
-              results: exactData
+              queryString: electorateName
             });
             houseData = [...houseData, ...exactData];
             console.log(`Found ${exactData.length} House candidates for ${electorateName}`);
             continue;
           }
           
-          console.log(`No results with direct match, trying additional queries for "${electorateName}"`);
-          
-          const { data: lowercaseData, error: lowercaseError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .filter('electorate', 'ilike', `%${electorateName.toLowerCase().trim()}%`);
-          
-          if (!lowercaseError && lowercaseData && lowercaseData.length > 0) {
-            debugInfo.steps.push({ 
-              step: `Found House candidates with lowercase match for "${electorateName}"`, 
-              count: lowercaseData.length,
-              results: lowercaseData
-            });
-            houseData = [...houseData, ...lowercaseData];
-            console.log(`Found ${lowercaseData.length} House candidates with lowercase match for ${electorateName}`);
-            continue;
-          }
-          
+          // Try with a direct ilike search with wildcard
           const { data: partialData, error: partialError } = await supabase
             .from('House of Representatives Candidates')
             .select('*')
-            .filter('electorate', 'ilike', `%${electorateName}%`);
+            .ilike('electorate', `%${electorateName}%`);
           
-          if (!partialError && partialData && partialData.length > 0) {
+          debugInfo.steps.push({ 
+            step: `Querying with wildcard for "${electorateName}"`, 
+            queryString: `%${electorateName}%`,
+            error: partialError || null
+          });
+          
+          if (partialError) {
+            console.error(`Error with wildcard query for ${electorateName}:`, partialError);
+            continue;
+          }
+          
+          if (partialData && partialData.length > 0) {
             debugInfo.steps.push({ 
-              step: `Found House candidates with partial match for "${electorateName}"`, 
+              step: `Found House candidates with wildcard match for "${electorateName}"`, 
               count: partialData.length,
-              results: partialData
+              queryString: `%${electorateName}%`
             });
             houseData = [...houseData, ...partialData];
-            console.log(`Found ${partialData.length} House candidates with partial match for ${electorateName}`);
+            console.log(`Found ${partialData.length} House candidates with wildcard match for ${electorateName}`);
+            continue;
+          }
+          
+          // Try extra normalization (lowercase)
+          const normalizedElectorate = electorateName.toLowerCase().trim();
+          const { data: normalizedData, error: normalizedError } = await supabase
+            .from('House of Representatives Candidates')
+            .select('*')
+            .ilike('electorate', normalizedElectorate);
+          
+          debugInfo.steps.push({ 
+            step: `Querying with normalized string for "${electorateName}"`, 
+            queryString: normalizedElectorate,
+            error: normalizedError || null
+          });
+          
+          if (normalizedError) {
+            console.error(`Error with normalized query for ${electorateName}:`, normalizedError);
+            continue;
+          }
+          
+          if (normalizedData && normalizedData.length > 0) {
+            debugInfo.steps.push({ 
+              step: `Found House candidates with normalized match for "${electorateName}"`, 
+              count: normalizedData.length,
+              queryString: normalizedElectorate
+            });
+            houseData = [...houseData, ...normalizedData];
+            console.log(`Found ${normalizedData.length} House candidates with normalized match for ${electorateName}`);
             continue;
           }
           
@@ -176,22 +233,30 @@ export const usePostcodeSearch = (
         setHouseResults(houseData);
           
         if (houseData.length === 0 && uniqueElectorates.length > 0) {
-          const { data: allCandidates, error: allError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .limit(20);
-            
-          if (!allError && allCandidates) {
+          try {
+            // Direct database query for debugging
+            const { data: allCandidates, error: allError } = await supabase
+              .from('House of Representatives Candidates')
+              .select('*')
+              .limit(10);
+              
+            if (!allError && allCandidates) {
+              debugInfo.steps.push({
+                step: "Direct database query for debugging",
+                count: allCandidates.length,
+                sampleCandidates: allCandidates.slice(0, 5)
+              });
+              
+              const dbElectorates = [...new Set(allCandidates.map((c: any) => c.electorate))];
+              debugInfo.steps.push({
+                step: "Sample electorates in database",
+                electorates: dbElectorates.slice(0, 10)
+              });
+            }
+          } catch (queryError) {
             debugInfo.steps.push({
-              step: "Fallback query - sample candidates in database",
-              count: allCandidates.length,
-              sampleCandidates: allCandidates.slice(0, 5)
-            });
-            
-            const dbElectorates = [...new Set(allCandidates.map(c => c.electorate))];
-            debugInfo.steps.push({
-              step: "Sample electorates in database",
-              electorates: dbElectorates.slice(0, 10)
+              step: "Error in direct database query",
+              error: queryError
             });
           }
         }
@@ -226,33 +291,6 @@ export const usePostcodeSearch = (
         if (senateResults && senateResults.length > 0) {
           senateData = senateResults;
           setSenateResults(senateData);
-        }
-      }
-
-      if ((chamberType === "house" || chamberType === null) && houseData.length === 0) {
-        const targetElectorate = uniqueElectorates[0];
-        
-        try {
-          const { data: directQueryData, error: directQueryError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .limit(10);
-            
-          if (!directQueryError && directQueryData) {
-            const sampleElectorates = directQueryData.map(c => c.electorate);
-            
-            debugInfo.steps.push({
-              step: "Direct database query for debugging",
-              targetElectorate,
-              sampleElectorates,
-              message: "These are sample electorates in the database. Check if they match your search term."
-            });
-          }
-        } catch (queryError) {
-          debugInfo.steps.push({
-            step: "Error in direct database query",
-            error: queryError
-          });
         }
       }
 

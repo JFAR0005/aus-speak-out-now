@@ -9,7 +9,7 @@ const Header: React.FC = () => {
           <img 
             src="/lovable-uploads/1c95a376-5397-442f-8c2a-7ceaccdb900f.png" 
             alt="Australia Speak Out Now Logo" 
-            className="h-12 w-auto"
+            className="h-16 w-auto" // Increased from h-12 to h-16
           />
         </div>
         <p className="hidden md:block text-sm">Free Political Action Platform</p>

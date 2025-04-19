@@ -29,7 +29,7 @@ export const generateSubjectLine = (concern: string): string => {
     "corruption": "Government Accountability and Anti-Corruption Measures",
     "environment": "Environmental Conservation and Biodiversity Protection",
     "wage": "Wage Growth and Fair Work Conditions",
-    "housing": "Affordable Housing and Rental Market Reform",
+    "rental": "Affordable Housing and Rental Market Reform",
     "media": "Media Diversity and Public Broadcasting",
   };
   

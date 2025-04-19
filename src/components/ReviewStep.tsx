@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +13,8 @@ import {
   RefreshCw, 
   CheckCircle2, 
   Download,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 import { Electorate, Candidate } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -46,9 +48,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   onUpdateIndividualLetters,
   onPrevious,
 }) => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(selectedCandidates[0] || "all");
   const [regenerateTone, setRegenerateTone] = useState("formal");
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState<Record<string, boolean>>({});
   const [editableLetters, setEditableLetters] = useState<Record<string, string>>(
     Object.keys(individualLetters).length > 0 
       ? individualLetters 
@@ -100,7 +102,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const handleCopyAllLetters = () => {
     const allLettersText = selectedCandidatesList
-      .map(candidate => editableLetters[candidate.id] || "")
+      .map(candidate => {
+        const letterText = editableLetters[candidate.id] || "";
+        return `---- LETTER TO ${candidate.name.toUpperCase()} (${candidate.party}) ----\n\n${letterText}\n\n`;
+      })
       .filter(Boolean)
       .join("\n\n----------\n\n");
     
@@ -125,20 +130,42 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     if (candidateId && candidateId !== "all") {
       const candidate = selectedCandidatesList.find(c => c.id === candidateId);
       if (candidate) {
-        const subject = "Constituent Outreach: Your Attention Required";
-        const body = encodeURIComponent(editableLetters[candidateId] || "");
+        // Create a subject line based on content
+        const letterText = editableLetters[candidateId] || "";
+        const subjectMatch = letterText.match(/Re: (.*?)(?:\n|$)/);
+        const subject = subjectMatch ? subjectMatch[1] : "Constituent Outreach: Your Attention Required";
+        
+        const body = encodeURIComponent(letterText);
         window.open(`mailto:${candidate.email}?subject=${subject}&body=${body}`);
+        
+        toast({
+          title: "Email client opened",
+          description: `Preparing to send email to ${candidate.name}.`,
+        });
       }
-    } else {
+    } else if (candidateId === "all") {
+      // Send to all candidates
       const emails = selectedCandidatesList.map((c) => c.email).join(";");
       const subject = "Constituent Outreach: Your Attention Required";
       const body = encodeURIComponent(generatedLetter);
       window.open(`mailto:${emails}?subject=${subject}&body=${body}`);
+      
+      toast({
+        title: "Email client opened",
+        description: `Preparing to send email to all ${selectedCandidatesList.length} recipients.`,
+      });
+    } else {
+      // Use the current active tab
+      handleSendEmail(activeTab);
     }
   };
 
   const handleRegenerateLetter = async (candidateId?: string) => {
-    setIsRegenerating(true);
+    // Set regenerating state for specific candidate
+    setIsRegenerating(prev => ({
+      ...prev,
+      [candidateId || "all"]: true
+    }));
     
     try {
       if (candidateId && candidateId !== "all") {
@@ -167,7 +194,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           
           toast({
             title: "Letter regenerated",
-            description: `Letter for ${candidate.name} has been regenerated.`,
+            description: `Letter for ${candidate.name} has been regenerated with a ${regenerateTone} tone.`,
           });
         }
       } else {
@@ -181,7 +208,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         description: "There was an error regenerating the letter. Please try again.",
       });
     } finally {
-      setIsRegenerating(false);
+      setIsRegenerating(prev => ({
+        ...prev,
+        [candidateId || "all"]: false
+      }));
     }
   };
 
@@ -191,10 +221,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       <TabsContent key={candidateId} value={candidateId} className="mt-4">
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-2">
               <div>
                 <h3 className="font-medium text-lg">{candidate.name}</h3>
                 <p className="text-sm text-gray-500">{candidate.email}</p>
+                <p className="text-xs text-gray-500">{candidate.party}</p>
               </div>
               <div className="flex gap-2">
                 <Select 
@@ -216,10 +247,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={() => handleRegenerateLetter(candidateId)}
-                  disabled={isRegenerating}
+                  disabled={isRegenerating[candidateId]}
                   className="text-sm"
                 >
-                  <Sparkles className="mr-2 h-3 w-3" /> Regenerate
+                  {isRegenerating[candidateId] ? (
+                    "Regenerating..."
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-3 w-3" /> Regenerate
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -230,7 +267,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               className="min-h-[300px] font-mono text-sm"
             />
 
-            <div className="flex justify-end mt-4 space-x-2">
+            <div className="flex flex-wrap justify-end mt-4 gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -269,26 +306,26 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     <div className="w-full max-w-3xl mx-auto">
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800">Review & Send Your Letter</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Review & Send Your Letters</h2>
           <p className="text-gray-600 mt-2">
-            Edit your letter if needed, then send it or copy it to your clipboard
+            Each letter is uniquely written for each recipient. You can edit, regenerate, or send them individually.
           </p>
         </div>
 
         {hasIndividualLetters ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4 w-full justify-start">
-              <TabsTrigger value="all">All Letters</TabsTrigger>
+            <TabsList className="mb-4 w-full justify-start overflow-x-auto">
               {selectedCandidatesList.map((candidate) => (
-                <TabsTrigger key={candidate.id} value={candidate.id}>
+                <TabsTrigger key={candidate.id} value={candidate.id} className="whitespace-nowrap">
                   {candidate.name.split(' ')[0]}
                 </TabsTrigger>
               ))}
+              <TabsTrigger value="all">View All</TabsTrigger>
             </TabsList>
             
             <TabsContent value="all">
               <div className="bg-white rounded-lg shadow p-5 border border-gray-200">
-                <h3 className="font-medium text-lg mb-4">Recipients:</h3>
+                <h3 className="font-medium text-lg mb-4">All Recipients:</h3>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {selectedCandidatesList.map((candidate) => (
                     <div
@@ -306,21 +343,33 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block mb-2 font-medium">Combined View</label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                      <label className="font-medium">Combined View (Read Only)</label>
+                    </div>
                     <p className="text-sm text-gray-500 mb-4">
-                      This view shows all letters combined. Switch to individual tabs above to edit each letter separately.
+                      This view shows a preview of all letters. Each letter is uniquely written for its recipient.
+                      Switch to individual tabs above to edit each letter separately.
                     </p>
-                    <Textarea
-                      value={generatedLetter}
-                      onChange={(e) => onEditLetter(e.target.value)}
-                      className="min-h-[300px] font-mono text-sm"
-                      readOnly
-                    />
+                    
+                    {selectedCandidatesList.map((candidate) => (
+                      <div key={candidate.id} className="mb-6">
+                        <h4 className="font-medium text-sm mb-2 bg-gray-100 p-2 rounded">
+                          Letter to {candidate.name} ({candidate.party})
+                        </h4>
+                        <Textarea
+                          value={editableLetters[candidate.id] || ""}
+                          className="min-h-[200px] font-mono text-sm mb-4"
+                          readOnly
+                        />
+                        <Separator className="mb-4" />
+                      </div>
+                    ))}
                   </div>
 
                   <Alert className="bg-muted/70 border-muted">
                     <AlertDescription className="text-xs text-muted-foreground">
-                      By sending this email, you acknowledge that the message will be sent from your email address. 
+                      By sending these emails, you acknowledge that the messages will be sent from your email address. 
                       We do not store or retain your personal information.
                     </AlertDescription>
                   </Alert>
@@ -332,7 +381,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           </Tabs>
         ) : (
           <div className="bg-white rounded-lg shadow p-5 border border-gray-200">
-            <h3 className="font-medium text-lg mb-4">Recipients:</h3>
+            <h3 className="font-medium text-lg mb-4">Recipient:</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               {selectedCandidatesList.map((candidate) => (
                 <div
@@ -371,9 +420,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => handleRegenerateLetter()}
+                    disabled={isRegenerating["all"]}
                     className="text-sm"
                   >
-                    <RefreshCw className="mr-2 h-3 w-3" /> Regenerate
+                    {isRegenerating["all"] ? (
+                      "Regenerating..."
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-3 w-3" /> Regenerate
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

@@ -8,7 +8,8 @@ import {
   ChevronLeft, 
   Upload, 
   Sparkles,
-  FileText 
+  FileText,
+  AlertCircle
 } from "lucide-react";
 import { Electorate, Candidate } from "../types";
 import { generateLetters } from "../services/letterService";
@@ -20,6 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 
 interface MessageStepProps {
   electorate: Electorate;
@@ -46,6 +51,8 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [letterTone, setLetterTone] = useState("formal");
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -58,19 +65,42 @@ const MessageStep: React.FC<MessageStepProps> = ({
     if (!file) return;
     
     setUploadedFile(file);
+    setFileError(null);
+    setIsProcessingFile(true);
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError("File too large. Maximum size is 5MB.");
+      setIsProcessingFile(false);
+      return;
+    }
+    
+    // Check file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (!validTypes.includes(file.type)) {
+      setFileError("Invalid file type. Please upload PDF, DOC, DOCX, or TXT files only.");
+      setIsProcessingFile(false);
+      return;
+    }
     
     // Read file content
     const reader = new FileReader();
+    
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
         setFileContent(text);
+        setIsProcessingFile(false);
+        
         toast({
           title: "File processed",
-          description: `${file.name} has been processed and will be used to enhance your letter.`,
+          description: `${file.name} has been processed. Any relevant insights will be included in your letters.`,
         });
       } catch (error) {
         console.error("Error reading file:", error);
+        setFileError("Could not extract content from the file.");
+        setIsProcessingFile(false);
+        
         toast({
           variant: "destructive",
           title: "Processing failed",
@@ -80,6 +110,9 @@ const MessageStep: React.FC<MessageStepProps> = ({
     };
     
     reader.onerror = () => {
+      setFileError("There was an error reading the file.");
+      setIsProcessingFile(false);
+      
       toast({
         variant: "destructive",
         title: "File error",
@@ -91,7 +124,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
     if (file.type === "text/plain") {
       reader.readAsText(file);
     } else {
-      // For PDFs, DOCs, etc. - in a real app we'd use a document parsing service
+      // For PDFs, DOCs, etc. we'd ideally use a proper parser
       // For this demo, we'll just read as text and extract what we can
       reader.readAsText(file);
     }
@@ -100,6 +133,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const clearFile = () => {
     setUploadedFile(null);
     setFileContent(null);
+    setFileError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -153,7 +187,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800">Draft Your Message</h2>
           <p className="text-gray-600 mt-2">
-            Describe your concern or upload relevant material and we'll help draft a personalized letter
+            Describe your concern or upload relevant material and we'll help draft a personalized letter for each representative
           </p>
         </div>
 
@@ -187,6 +221,9 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 onChange={(e) => setUserConcern(e.target.value)}
                 className="min-h-[120px]"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Be specific about your concern. The AI will use your words to craft a personalized message.
+              </p>
             </div>
             
             <div>
@@ -208,7 +245,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">
-                Choose the tone for your letter
+                Choose the tone for your letters - each will be uniquely written
               </p>
             </div>
 
@@ -224,13 +261,14 @@ const MessageStep: React.FC<MessageStepProps> = ({
 
             <div>
               <label className="block mb-2 font-medium">
-                Upload a relevant document
+                Upload a document with facts or evidence
               </label>
               <div className="flex items-center">
                 <Button
                   variant="outline"
                   className="relative overflow-hidden"
                   type="button"
+                  disabled={isProcessingFile}
                 >
                   <input
                     ref={fileInputRef}
@@ -238,8 +276,9 @@ const MessageStep: React.FC<MessageStepProps> = ({
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     accept=".pdf,.doc,.docx,.txt"
                     onChange={handleFileUpload}
+                    disabled={isProcessingFile}
                   />
-                  <Upload className="mr-2 h-4 w-4" /> Choose File
+                  <Upload className="mr-2 h-4 w-4" /> {isProcessingFile ? "Processing..." : "Choose File"}
                 </Button>
                 {uploadedFile ? (
                   <div className="flex items-center ml-3">
@@ -250,6 +289,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
                       size="sm" 
                       onClick={clearFile} 
                       className="ml-2 h-6 p-0 text-xs text-gray-500"
+                      disabled={isProcessingFile}
                     >
                       Clear
                     </Button>
@@ -263,10 +303,18 @@ const MessageStep: React.FC<MessageStepProps> = ({
               <p className="text-xs text-gray-500 mt-1">
                 Supported formats: PDF, DOC, DOCX, TXT (max 5MB)
               </p>
-              {fileContent && (
+              
+              {fileError && (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{fileError}</AlertDescription>
+                </Alert>
+              )}
+              
+              {fileContent && !fileError && (
                 <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
                   <p className="text-xs text-green-600">
-                    <span className="font-semibold">✓ Content extracted</span> - insights from this document will be used in your letter
+                    <span className="font-semibold">✓ Content extracted</span> - insights from this document will be used in your letters
                   </p>
                 </div>
               )}
@@ -278,12 +326,12 @@ const MessageStep: React.FC<MessageStepProps> = ({
           <Button variant="outline" onClick={onPrevious}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
-          <Button onClick={handleGenerateLetter} disabled={isGenerating}>
+          <Button onClick={handleGenerateLetter} disabled={isGenerating || isProcessingFile}>
             {isGenerating ? (
               "Generating..."
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" /> Generate Letter
+                <Sparkles className="mr-2 h-4 w-4" /> Generate Letters
               </>
             )}
           </Button>

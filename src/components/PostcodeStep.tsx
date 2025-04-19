@@ -36,19 +36,32 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     setSenateResults([]);
 
     try {
-      // Fetch House of Representatives candidates
+      // First, get the electorate and state mapping for the postcode
+      const { data: mappingData, error: mappingError } = await supabase
+        .from('postcode_mappings')
+        .select('*')
+        .eq('postcode', postcode)
+        .single();
+
+      if (mappingError) {
+        setError("This postcode is not in our database. Please try another postcode.");
+        setIsSearching(false);
+        return;
+      }
+
+      // Fetch House of Representatives candidates using the mapped electorate
       const { data: houseData, error: houseError } = await supabase
         .from('House of Representatives Candidates')
         .select('*')
-        .eq('division', mapPostcodeToElectorate(postcode));
+        .eq('division', mappingData.electorate);
 
       if (houseError) throw houseError;
 
-      // Fetch Senate candidates
+      // Fetch Senate candidates using the mapped state
       const { data: senateData, error: senateError } = await supabase
         .from('Senate Candidates')
         .select('*')
-        .eq('state', mapPostcodeToState(postcode));
+        .eq('state', mappingData.state);
 
       if (senateError) throw senateError;
 
@@ -56,22 +69,22 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
       setSenateResults(senateData || []);
 
       if ((!houseData || houseData.length === 0) && (!senateData || senateData.length === 0)) {
-        setError("No candidates found for this postcode");
+        setError("No candidates found for this electorate");
         return;
       }
 
-      // For compatibility with existing code, create an electorate object
+      // Create electorate object with the fetched data
       const electorate: Electorate = {
-        id: "1",
-        name: mapPostcodeToElectorate(postcode),
-        state: mapPostcodeToState(postcode),
+        id: postcode, // Using postcode as ID for now
+        name: mappingData.electorate,
+        state: mappingData.state,
         candidates: [
           ...(houseData || []).map((candidate) => ({
             id: `house-${candidate.ballotPosition}`,
             name: `${candidate.ballotGivenName} ${candidate.surname}`,
             party: candidate.partyBallotName,
-            email: "contact@example.com", // This would need to be added to the database
-            policies: [], // This would need to be added to the database
+            email: "contact@example.com", // Placeholder
+            policies: [], // Placeholder
           })),
         ],
       };

@@ -36,6 +36,24 @@ export type Database = {
         }
         Relationships: []
       }
+      postcode_mappings: {
+        Row: {
+          electorate: string
+          postcode: string
+          state: string
+        }
+        Insert: {
+          electorate: string
+          postcode: string
+          state: string
+        }
+        Update: {
+          electorate?: string
+          postcode?: string
+          state?: string
+        }
+        Relationships: []
+      }
       "Senate Candidates": {
         Row: {
           ballotGivenName: string | null

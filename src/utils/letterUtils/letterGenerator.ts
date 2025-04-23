@@ -29,35 +29,29 @@ export const generateLetterForCandidate = (
   
   const greeting = `Dear ${fullTitle}`;
   
-  // Process the user's concern through our cleaning system
-  // This will paraphrase rather than using verbatim text
   const concernContext = cleanInputText(concern);
   
-  // Generate an appropriate subject line based on the context
   const subject = generateSubjectLine(concernContext);
   
-  // More structured opening with paragraph breaks
   let opening = '';
   switch (tone) {
     case 'formal':
-      opening = `I am writing to address an important matter concerning ${concernContext}.\n\n${documentInsights ? documentInsights + '\n\n' : ''}I believe this issue requires careful consideration and meaningful action.`;
+      opening = `I am writing to address an important matter concerning ${concernContext}.\n\n${documentInsights}I believe this issue requires careful consideration and meaningful action.`;
       break;
     case 'passionate':
-      opening = `I am deeply concerned about ${concernContext} and feel compelled to bring this critical issue to your attention.\n\n${documentInsights ? documentInsights + '\n\n' : ''}The potential impact on our community cannot be overstated.`;
+      opening = `I am deeply concerned about ${concernContext} and feel compelled to bring this critical issue to your attention.\n\n${documentInsights}The potential impact on our community cannot be overstated.`;
       break;
     case 'direct':
-      opening = `I am writing to discuss ${concernContext} and understand your proposed approach to addressing this matter.\n\n${documentInsights ? documentInsights + '\n\n' : ''}Your position on this issue will significantly influence my perspective.`;
+      opening = `I am writing to discuss ${concernContext} and understand your proposed approach to addressing this matter.\n\n${documentInsights}Your position on this issue will significantly influence my perspective.`;
       break;
     case 'hopeful':
-      opening = `As a constituent, I am reaching out to discuss ${concernContext} and the potential for positive change.\n\n${documentInsights ? documentInsights + '\n\n' : ''}I believe that meaningful dialogue can lead to effective solutions.`;
+      opening = `As a constituent, I am reaching out to discuss ${concernContext} and the potential for positive change.\n\n${documentInsights}I believe that meaningful dialogue can lead to effective solutions.`;
       break;
   }
   
-  // More structured body with clear paragraphs
   const relevantStatistic = getRandomStatistic(concernContext);
-  const body = `As a candidate ${partyInfo} for the ${candidateRole}, you play a crucial role in addressing community concerns.\n\n${relevantStatistic}\n\nThe implications of this issue extend beyond simple policy – they directly impact the lives of constituents like myself.\n\nI am seeking a representative who will not just listen, but take concrete, meaningful action to address these challenges.`;
+  const body = `As a candidate${partyInfo} for the ${candidateRole}, you play a crucial role in addressing community concerns.\n\n${relevantStatistic}\n\nThe implications of this issue extend beyond simple policy – they directly impact the lives of constituents like myself.\n\nI am seeking a representative who will not just listen, but take concrete, meaningful action to address these challenges.`;
   
-  // More structured and conversational closing
   let closing = '';
   switch (tone) {
     case 'formal':
@@ -67,10 +61,7 @@ export const generateLetterForCandidate = (
       closing = `I am eager to hear your specific commitments and actionable plans for addressing this issue.\n\nWhat concrete steps will you take to make a meaningful difference?`;
       break;
     case 'direct':
-      closing = `I request a clear, detailed response that outlines:
-1. Your specific position on this issue
-2. Proposed policy actions
-3. Measurable outcomes you aim to achieve\n\nYour transparency will be crucial in earning my support.`;
+      closing = `I request a clear, detailed response that outlines:\n\n1. Your specific position on this issue\n2. Proposed policy actions\n3. Measurable outcomes you aim to achieve\n\nYour transparency will be crucial in earning my support.`;
       break;
     case 'hopeful':
       closing = `I look forward to the possibility of constructive dialogue and collaborative problem-solving.\n\nTogether, we can work towards meaningful progress for our community.`;
@@ -81,7 +72,6 @@ export const generateLetterForCandidate = (
                  tone === 'passionate' ? 'Kind regards,' :
                  tone === 'direct' ? 'Regards,' : 'Best regards,';
   
-  // Construct the initial letter
   let letterText = `[Your Name]
 [Your Address]
 [Your Email]
@@ -92,7 +82,7 @@ ${formatDate(new Date())}
 ${fullTitle}
 ${candidate.email}
 
-${greeting},
+${greeting}
 
 ${subject}
 
@@ -105,6 +95,5 @@ ${closing}
 ${signOff}
 [YOUR NAME]`;
 
-  // Apply quality check to improve phrasing and grammar
   return qualityCheck(letterText);
 };

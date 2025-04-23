@@ -20,10 +20,10 @@ export const extractDocumentInsights = (documentText: string | null, concern: st
       ).slice(0, 5);
     
     if (relevantFacts.length > 0) {
-      return `Based on the document provided, I've found these relevant facts: ${relevantFacts.join('; ')}. `;
+      return `Here are some relevant facts about this issue: ${relevantFacts.join('; ')}.\n\n`;
     }
     
-    return `I've reviewed the document you've provided which contains information about ${concern}. `;
+    return '';
   } catch (error) {
     console.error("Error extracting document insights:", error);
     return '';

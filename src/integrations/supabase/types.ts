@@ -14,7 +14,7 @@ export type Database = {
           ballotGivenName: string | null
           ballotPosition: string | null
           electorate: string | null
-          ley: string | null
+          email: string | null
           partyBallotName: string | null
           state: string | null
           surname: string | null
@@ -23,7 +23,7 @@ export type Database = {
           ballotGivenName?: string | null
           ballotPosition?: string | null
           electorate?: string | null
-          ley?: string | null
+          email?: string | null
           partyBallotName?: string | null
           state?: string | null
           surname?: string | null
@@ -32,7 +32,7 @@ export type Database = {
           ballotGivenName?: string | null
           ballotPosition?: string | null
           electorate?: string | null
-          ley?: string | null
+          email?: string | null
           partyBallotName?: string | null
           state?: string | null
           surname?: string | null

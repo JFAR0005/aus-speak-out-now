@@ -303,7 +303,8 @@ export const usePostcodeSearch = (
             id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
             name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
             party: candidate.partyBallotName || 'Independent',
-            email: "contact@example.com", 
+            // updated to use the real email if available
+            email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,
             division: candidate.electorate,

@@ -1,459 +1,164 @@
+
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Electorate, ChamberType } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import { validatePostcodeInput } from "@/utils/search/postcodeValidator";
+import { fetchPostcodeMappings } from "@/utils/search/mappingService";
+import { 
+  fetchHouseCandidates, 
+  fetchSenateCandidates, 
+  formatCandidateData 
+} from "@/utils/search/candidateService";
+import { handleSearchSuccess, handleSearchError } from "@/utils/search/notificationService";
+import type { SearchState, SearchDebugInfo, CandidateSearchProps } from "@/utils/search/types";
 
 export const usePostcodeSearch = (
-  chamberType: ChamberType | null,
+  chamberType: CandidateSearchProps["chamberType"],
   postcode: string,
-  onContinue: (electorate: Electorate) => void
+  onContinue: CandidateSearchProps["onContinue"]
 ) => {
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [houseResults, setHouseResults] = useState<any[]>([]);
-  const [senateResults, setSenateResults] = useState<any[]>([]);
-  const [mappings, setMappings] = useState<any[]>([]);
-  const [debug, setDebug] = useState<any>(null);
+  const [state, setState] = useState<SearchState>({
+    error: null,
+    info: null,
+    isSearching: false,
+    mappings: [],
+    houseResults: [],
+    senateResults: [],
+    debug: null
+  });
+  
   const { toast } = useToast();
 
   const handleSearch = async () => {
-    if (!postcode.trim()) {
-      setError("Please enter a postcode to search");
+    // Validate input
+    const validationError = validatePostcodeInput(postcode);
+    if (validationError) {
+      setState(prev => ({ ...prev, error: validationError }));
       return;
     }
 
-    setIsSearching(true);
-    setError(null);
-    setInfo(null);
-    setHouseResults([]);
-    setSenateResults([]);
-    setMappings([]);
-    
-    const debugInfo: any = {
+    setState(prev => ({ 
+      ...prev, 
+      isSearching: true,
+      error: null,
+      info: null,
+      mappings: [],
+      houseResults: [],
+      senateResults: []
+    }));
+
+    const debugInfo: SearchDebugInfo = {
       input: postcode,
       chamberType,
       steps: []
     };
 
     try {
-      console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
-      
-      const inputValue = postcode.trim();
-      const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
-      
-      let mappingData: any[] = [];
-      let mappingError: any = null;
-      
-      // Only search by exact postcode if it's a 4-digit number or state abbreviation
-      if (/^\d{4}$/.test(inputValue)) {
-        const numericPostcode = Number(inputValue);
-        debugInfo.steps.push({ step: "Searching by exact postcode", query: inputValue });
-        
-        const result = await supabase
-          .from('postcode_mappings')
-          .select('*')
-          .eq('postcode', numericPostcode);
-          
-        mappingData = result.data || [];
-        mappingError = result.error;
-        
-        debugInfo.steps.push({ 
-          step: "Postcode search results", 
-          found: mappingData?.length || 0,
-          hasError: !!mappingError
-        });
-      }
-      // Only other option is state abbreviation for Senate searches
-      else if (stateAbbreviations.includes(inputValue.toUpperCase())) {
-        const stateCode = inputValue.toUpperCase();
-        debugInfo.steps.push({ step: "Searching by state abbreviation", query: stateCode });
-        
-        const result = await supabase
-          .from('postcode_mappings')
-          .select('*')
-          .eq('state', stateCode);
-          
-        mappingData = result.data || [];
-        mappingError = result.error;
-        
-        debugInfo.steps.push({ 
-          step: "State search results", 
-          found: mappingData?.length || 0,
-          hasError: !!mappingError
-        });
-      } else {
-        setError("Please enter a valid 4-digit postcode" + (chamberType === "senate" ? " or state abbreviation (e.g., NSW)" : ""));
-        setIsSearching(false);
-        return;
-      }
-
-      // Log all results for debugging
-      if (mappingData && mappingData.length > 0) {
-        debugInfo.steps.push({
-          step: "Raw mappings before processing",
-          count: mappingData.length,
-          mappings: mappingData.map(m => ({
-            locality: m.locality,
-            electorate: m.electorate,
-            state: m.state,
-            postcode: m.postcode
-          }))
-        });
-      }
+      const numericPostcode = Number(postcode);
+      const { data: mappingData, error: mappingError } = await fetchPostcodeMappings(numericPostcode);
 
       if (mappingError) {
-        console.error("Mapping error:", mappingError);
-        debugInfo.steps.push({ step: "Mapping error", error: mappingError });
         throw mappingError;
       }
 
       if (!mappingData || mappingData.length === 0) {
-        setError("We couldn't find any location based on that input. Please check your postcode, suburb, or try a nearby area.");
-        debugInfo.steps.push({ step: "No mappings found" });
-        setDebug(debugInfo);
-        setIsSearching(false);
+        setState(prev => ({
+          ...prev,
+          error: "We couldn't find any location based on that postcode. Please check your postcode or try a nearby area.",
+          isSearching: false
+        }));
         return;
       }
 
-      // Just to be extra certain, filter for EXACT case insensitive locality matches again
-      if (!(/^\d{4}$/.test(inputValue)) && 
-          !stateAbbreviations.includes(inputValue.toUpperCase())) {
-        
-        // Ensure we're working with strings for comparison
-        const exactMatches = mappingData.filter(m => 
-          m.locality && 
-          typeof m.locality === 'string' && 
-          m.locality.toLowerCase() === inputValue.toLowerCase()
-        );
-        
-        debugInfo.steps.push({
-          step: "Double checking for exact locality matches",
-          input: inputValue.toLowerCase(),
-          exactMatchesFound: exactMatches.length,
-          exactMatches: exactMatches.map(m => ({
-            locality: m.locality,
-            electorate: m.electorate
-          })),
-          originalMatches: mappingData.map(m => ({
-            locality: m.locality,
-            electorate: m.electorate
-          }))
-        });
-        
-        // Only use exact matches if we found some
-        if (exactMatches.length > 0) {
-          mappingData = exactMatches;
-          
-          debugInfo.steps.push({
-            step: "Using filtered exact matches",
-            count: mappingData.length,
-            electorates: mappingData.map(m => m.electorate).join(', ')
-          });
-        }
-      }
+      setState(prev => ({ ...prev, mappings: mappingData }));
 
-      setMappings(mappingData);
-      debugInfo.steps.push({ 
-        step: "Final mappings set", 
-        count: mappingData.length,
-        electorates: mappingData.map(m => m.electorate).join(', ')
-      });
-      console.log("Found mappings:", mappingData);
-
-      // Make sure we're only dealing with string values for electorate and state
-      const uniqueElectorates: string[] = [...new Set(mappingData
-        .map(m => m.electorate)
-        .filter((e): e is string => typeof e === 'string')
-      )];
+      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
+      const uniqueStates = [...new Set(mappingData.map(m => m.state))];
       
-      const uniqueStates: string[] = [...new Set(mappingData
-        .map(m => m.state)
-        .filter((s): s is string => typeof s === 'string')
-      )];
-      
-      debugInfo.steps.push({ 
-        step: "Extracted unique values", 
-        uniqueElectorates, 
-        uniqueStates 
-      });
-      
-      console.log("Unique electorates:", uniqueElectorates);
-      console.log("Unique states:", uniqueStates);
-
-      const primaryMapping = mappingData[0];
       let houseData: any[] = [];
       let senateData: any[] = [];
 
-      // Perform a test query for "Sydney" to verify the database has records
-      try {
-        const { data: testSydneyResults, error: testSydneyError } = await supabase
-          .from('House of Representatives Candidates')
-          .select('*')
-          .ilike('electorate', 'Sydney');
-          
-        if (!testSydneyError) {
-          debugInfo.testQueryResults = testSydneyResults || [];
-          debugInfo.steps.push({ 
-            step: "Test query for 'Sydney'", 
-            count: testSydneyResults?.length || 0,
-            queryString: "Sydney"
-          });
-        }
-      } catch (testError) {
-        debugInfo.steps.push({ 
-          step: "Error in test query", 
-          error: testError
-        });
-      }
-
       if (chamberType === "house" || chamberType === null) {
-        debugInfo.steps.push({ step: "Starting House candidate search", electorates: uniqueElectorates });
-        console.log("Searching for House candidates in electorates:", uniqueElectorates);
-        
-        for (const electorateName of uniqueElectorates) {
-          if (!electorateName || typeof electorateName !== 'string') {
-            debugInfo.steps.push({ 
-              step: "Skipping invalid electorate name", 
-              value: electorateName
-            });
-            continue;
-          }
-          
-          // Try exact match first (case insensitive)
-          const { data: exactData, error: exactError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .ilike('electorate', electorateName);
-          
-          debugInfo.steps.push({ 
-            step: `Querying for electorate "${electorateName}"`, 
-            queryString: electorateName,
-            error: exactError || null
-          });
-          
-          if (exactError) {
-            console.error(`Error querying for electorate ${electorateName}:`, exactError);
-            continue;
-          }
-          
-          if (exactData && exactData.length > 0) {
-            debugInfo.steps.push({ 
-              step: `Found House candidates with exact match for "${electorateName}"`, 
-              count: exactData.length,
-              queryString: electorateName
-            });
-            houseData = [...houseData, ...exactData];
-            console.log(`Found ${exactData.length} House candidates for ${electorateName}`);
-            continue;
-          }
-          
-          // No longer trying partial matches - exact matches only
-          debugInfo.steps.push({ 
-            step: `No House candidates found for "${electorateName}" with exact match`, 
-            electorate: electorateName
-          });
-          console.log(`No House candidates found for "${electorateName}" with exact match`);
-        }
-        
-        debugInfo.steps.push({ 
-          step: "Final House candidates results", 
-          count: houseData.length,
-          houseData: houseData.map(c => ({
-            name: `${c.ballotGivenName || ''} ${c.surname || ''}`.trim(),
-            electorate: c.electorate,
-            party: c.partyBallotName
-          }))
-        });
-        
-        console.log("Final House candidates:", houseData);
-        setHouseResults(houseData);
-          
-        if (houseData.length === 0 && uniqueElectorates.length > 0) {
-          try {
-            // Direct database query for debugging
-            const { data: allCandidates, error: allError } = await supabase
-              .from('House of Representatives Candidates')
-              .select('*')
-              .limit(10);
-              
-            if (!allError && allCandidates) {
-              debugInfo.steps.push({
-                step: "Direct database query for debugging",
-                count: allCandidates.length,
-                sampleCandidates: allCandidates.slice(0, 5)
-              });
-              
-              const dbElectorates = [...new Set(allCandidates
-                .map((c: any) => c.electorate)
-                .filter((e): e is string => typeof e === 'string')
-              )];
-              
-              debugInfo.steps.push({
-                step: "Sample electorates in database",
-                electorates: dbElectorates.slice(0, 10)
-              });
-            }
-          } catch (queryError) {
-            debugInfo.steps.push({
-              step: "Error in direct database query",
-              error: queryError
-            });
-          }
-        }
+        houseData = await fetchHouseCandidates(uniqueElectorates);
       }
 
       if (chamberType === "senate" || chamberType === null) {
-        debugInfo.steps.push({ step: "Starting Senate candidate search", states: uniqueStates });
-        console.log("Searching for Senate candidates in states:", uniqueStates);
-        
-        if (uniqueStates.length > 0) {
-          const { data: senateResults, error: senateError } = await supabase
-            .from('Senate Candidates')
-            .select('*')
-            .in('state', uniqueStates);
-
-          if (senateError) {
-            console.error("Senate candidates query error:", senateError);
-            debugInfo.steps.push({ 
-              step: "Error querying for Senate candidates", 
-              error: senateError 
-            });
-            throw senateError;
-          }
-          
-          debugInfo.steps.push({ 
-            step: "Senate candidates found", 
-            count: senateResults?.length || 0,
-            results: senateResults
-          });
-          
-          console.log("Senate candidates found:", senateResults);
-          
-          if (senateResults && senateResults.length > 0) {
-            senateData = senateResults;
-            setSenateResults(senateData);
-          }
-        } else {
-          debugInfo.steps.push({ step: "No valid states found for Senate search" });
-        }
+        senateData = await fetchSenateCandidates(uniqueStates);
       }
 
-      const electorate: Electorate = {
-        id: postcode,
-        name: primaryMapping.electorate,
-        state: primaryMapping.state,
-        candidates: [
-          ...(chamberType !== "senate" ? (houseData || []).map((candidate) => ({
-            id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
-            name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
-            party: candidate.partyBallotName || 'Independent',
-            email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",
-            policies: [],
-            chamber: "house" as ChamberType,
-            division: candidate.electorate,
-          })) : []),
-          ...(chamberType !== "house" ? (senateData || []).map((candidate) => ({
-            id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
-            name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
-            party: candidate.partyBallotName || 'Independent',
-            email: "contact@example.com",
-            policies: [],
-            chamber: "senate" as ChamberType,
-            state: candidate.state,
-          })) : []),
-        ],
-      };
+      const candidateData = formatCandidateData(houseData, senateData, chamberType, mappingData[0]);
 
-      const candidateCount = electorate.candidates.length;
-      
-      if (candidateCount === 0) {
-        if (chamberType === "house") {
-          setInfo(`We found your electorate (${primaryMapping.electorate} in ${primaryMapping.state}), but no House candidate data is available yet.`);
-          toast({
-            title: "No Candidates Found",
-            description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no House candidate data is available yet.`,
-          });
-          debugInfo.steps.push({ 
-            step: "No House candidates found despite finding electorate", 
-            electorate: primaryMapping.electorate
-          });
-        } else if (chamberType === "senate") {
-          setInfo(`We found your state (${primaryMapping.state}), but no Senate candidate data is available yet.`);
-          toast({
-            title: "No Candidates Found",
-            description: `Found your location in ${primaryMapping.state}, but no Senate candidate data is available yet.`,
-          });
-          debugInfo.steps.push({ 
-            step: "No Senate candidates found despite finding state", 
-            state: primaryMapping.state
-          });
-        } else {
-          setInfo(`We found your location (${primaryMapping.electorate} in ${primaryMapping.state}), but no candidate data is available yet.`);
-          toast({
-            title: "No Candidates Found",
-            description: `Found ${primaryMapping.electorate} in ${primaryMapping.state}, but no candidate data is available yet.`,
-          });
-          debugInfo.steps.push({ 
-            step: "No candidates found despite finding location", 
-            electorate: primaryMapping.electorate,
-            state: primaryMapping.state
-          });
-        }
-      } else {
-        const houseCount = chamberType !== "senate" ? houseData.length : 0;
-        const senateCount = chamberType !== "house" ? senateData.length : 0;
-        
-        let description = "";
-        if (chamberType === "house") {
-          description = `Found ${houseCount} House candidates for ${primaryMapping.electorate} in ${primaryMapping.state}.`;
-        } else if (chamberType === "senate") {
-          description = `Found ${senateCount} Senate candidates for ${primaryMapping.state}.`;
-        } else {
-          description = `Found ${houseCount} House and ${senateCount} Senate candidates for ${primaryMapping.state}.`;
-        }
+      if (houseData.length === 0 && senateData.length === 0) {
+        setState(prev => ({
+          ...prev,
+          info: getCandidateNotFoundMessage(chamberType, mappingData[0]),
+          isSearching: false,
+          debug: debugInfo
+        }));
         
         toast({
-          title: "Found your representatives",
-          description: description,
+          title: "No Candidates Found",
+          description: getNoCandidatesMessage(chamberType, mappingData[0]),
         });
-        
-        debugInfo.steps.push({ 
-          step: "Found candidates successfully", 
-          houseCount,
-          senateCount,
-          description
-        });
-        
-        onContinue(electorate);
+      } else {
+        handleSearchSuccess(
+          toast,
+          houseData.length,
+          senateData.length,
+          chamberType,
+          mappingData[0]
+        );
+        onContinue(candidateData);
       }
+
+      setState(prev => ({
+        ...prev,
+        houseResults: houseData,
+        senateResults: senateData,
+        isSearching: false,
+        debug: debugInfo
+      }));
 
     } catch (err) {
       console.error("Error searching candidates:", err);
-      setError("Error searching for candidates. Please try again.");
-      debugInfo.steps.push({ 
-        step: "Error in search process", 
-        error: err
-      });
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch candidate data. Please try again.",
-      });
-    } finally {
-      setDebug(debugInfo);
-      setIsSearching(false);
+      setState(prev => ({
+        ...prev,
+        error: "Error searching for candidates. Please try again.",
+        isSearching: false,
+        debug: debugInfo
+      }));
+      handleSearchError(toast);
     }
   };
 
   return {
-    error,
-    info,
-    isSearching,
-    mappings,
-    houseResults,
-    senateResults,
-    handleSearch,
-    debug
+    ...state,
+    handleSearch
   };
 };
+
+const getCandidateNotFoundMessage = (
+  chamberType: "house" | "senate" | null,
+  mapping: any
+) => {
+  if (chamberType === "house") {
+    return `We found your electorate (${mapping.electorate} in ${mapping.state}), but no House candidate data is available yet.`;
+  } else if (chamberType === "senate") {
+    return `We found your state (${mapping.state}), but no Senate candidate data is available yet.`;
+  } else {
+    return `We found your location (${mapping.electorate} in ${mapping.state}), but no candidate data is available yet.`;
+  }
+};
+
+const getNoCandidatesMessage = (
+  chamberType: "house" | "senate" | null,
+  mapping: any
+) => {
+  if (chamberType === "house") {
+    return `Found ${mapping.electorate} in ${mapping.state}, but no House candidate data is available yet.`;
+  } else if (chamberType === "senate") {
+    return `Found your location in ${mapping.state}, but no Senate candidate data is available yet.`;
+  } else {
+    return `Found ${mapping.electorate} in ${mapping.state}, but no candidate data is available yet.`;
+  }
+};
+

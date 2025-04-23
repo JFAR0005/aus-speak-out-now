@@ -12,8 +12,8 @@ const SearchTips: React.FC<SearchTipsProps> = ({ chamberType }) => {
       <h3 className="font-medium text-sm text-muted-foreground">Search Tips</h3>
       <p className="text-xs text-muted-foreground mt-1">
         {chamberType === "senate" 
-          ? "Try entering a valid Australian postcode (e.g., 2000), a suburb name, or state abbreviation (e.g., NSW, VIC)"
-          : "Try entering a valid Australian postcode (e.g., 2000) or a suburb name (e.g., Sydney)"}
+          ? "Enter a valid Australian postcode (e.g., 2000) or state abbreviation (e.g., NSW, VIC)"
+          : "Enter a valid Australian postcode (e.g., 2000)"}
       </p>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,17 +35,17 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
 
   const getPlaceholderText = () => {
     if (chamberType === "senate") {
-      return "Enter your postcode, suburb, or state";
+      return "Enter your postcode or state";
     } else {
-      return "Enter your postcode or suburb";
+      return "Enter your postcode";
     }
   };
 
   const getPromptText = () => {
     if (chamberType === "senate") {
-      return "Enter your location to find Senate candidates for your state";
+      return "Enter your postcode or state to find Senate candidates";
     } else {
-      return "Enter your location to find House of Representatives candidates for your electorate";
+      return "Enter your postcode to find House of Representatives candidates for your electorate";
     }
   };
 

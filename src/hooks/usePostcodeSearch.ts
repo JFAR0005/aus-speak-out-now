@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -20,7 +19,7 @@ export const usePostcodeSearch = (
 
   const handleSearch = async () => {
     if (!postcode.trim()) {
-      setError("Please enter a location to search");
+      setError("Please enter a postcode to search");
       return;
     }
 
@@ -46,10 +45,10 @@ export const usePostcodeSearch = (
       let mappingData: any[] = [];
       let mappingError: any = null;
       
-      // Try to search by exact postcode if it's a 4-digit number
+      // Only search by exact postcode if it's a 4-digit number or state abbreviation
       if (/^\d{4}$/.test(inputValue)) {
         const numericPostcode = Number(inputValue);
-        debugInfo.steps.push({ step: "Searching by exact postcode", query: inputValue, numericValue: numericPostcode });
+        debugInfo.steps.push({ step: "Searching by exact postcode", query: inputValue });
         
         const result = await supabase
           .from('postcode_mappings')
@@ -65,10 +64,10 @@ export const usePostcodeSearch = (
           hasError: !!mappingError
         });
       }
-      // Try to search by state abbreviation (exact match)
+      // Only other option is state abbreviation for Senate searches
       else if (stateAbbreviations.includes(inputValue.toUpperCase())) {
         const stateCode = inputValue.toUpperCase();
-        debugInfo.steps.push({ step: "Searching by exact state abbreviation", query: stateCode });
+        debugInfo.steps.push({ step: "Searching by state abbreviation", query: stateCode });
         
         const result = await supabase
           .from('postcode_mappings')
@@ -81,51 +80,12 @@ export const usePostcodeSearch = (
         debugInfo.steps.push({ 
           step: "State search results", 
           found: mappingData?.length || 0,
-          hasError: !!mappingError,
-          stateCode
+          hasError: !!mappingError
         });
-      }
-      // Try to search by exact locality name (case insensitive)
-      else {
-        debugInfo.steps.push({ 
-          step: "Searching by exact locality name (case insensitive)",
-          query: inputValue,
-        });
-        
-        // First attempt: Get all records with similar locality name
-        const result = await supabase
-          .from('postcode_mappings')
-          .select('*')
-          .ilike('locality', inputValue);
-        
-        const allMatches = result.data || [];
-        mappingError = result.error;
-        
-        // If we found results, strictly filter them in JavaScript for EXACT locality matches only
-        if (!mappingError && allMatches && allMatches.length > 0) {
-          // Get exact matches only - this is critical for correct results
-          mappingData = allMatches.filter(m => 
-            m.locality && 
-            typeof m.locality === 'string' && 
-            m.locality.toLowerCase() === inputValue.toLowerCase()
-          );
-          
-          debugInfo.steps.push({ 
-            step: "Filtered exact locality matches", 
-            allMatches: allMatches.length,
-            exactMatches: mappingData.length,
-            query: inputValue,
-            matchingLocalitiesFound: allMatches.map(m => m.locality).join(', '),
-            exactLocalitiesKept: mappingData.map(m => m.locality).join(', ')
-          });
-        }
-        
-        debugInfo.steps.push({ 
-          step: "Final locality search results", 
-          found: mappingData?.length || 0,
-          hasError: !!mappingError,
-          query: inputValue
-        });
+      } else {
+        setError("Please enter a valid 4-digit postcode" + (chamberType === "senate" ? " or state abbreviation (e.g., NSW)" : ""));
+        setIsSearching(false);
+        return;
       }
 
       // Log all results for debugging

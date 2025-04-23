@@ -1,3 +1,4 @@
+
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
@@ -93,6 +94,7 @@ ${body}
 ${closing}
 
 ${signOff}
+
 [YOUR NAME]`;
 
   return qualityCheck(letterText);

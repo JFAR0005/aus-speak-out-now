@@ -29,60 +29,51 @@ export const generateLetters = async (
   }
   
   try {
+    // Process document insights first, with better error handling
     if (uploadedContent) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          try {
-            documentInsights = extractDocumentInsights(uploadedContent, concern);
-            const letters: Record<string, string> = {};
+      try {
+        // Process document insights without referencing the file directly
+        documentInsights = extractDocumentInsights(uploadedContent, concern);
+        console.log("Document insights extracted:", documentInsights ? "Yes" : "No");
+      } catch (error) {
+        console.error("Error processing document:", error);
+        documentInsights = '';
+      }
+    }
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        try {
+          const letters: Record<string, string> = {};
+          
+          const batchSize = 1;
+          const totalCandidates = candidates.length;
+          
+          for (let i = 0; i < totalCandidates; i += batchSize) {
+            const batch = candidates.slice(i, i + batchSize);
             
-            const batchSize = 1;
-            const totalCandidates = candidates.length;
-            
-            for (let i = 0; i < totalCandidates; i += batchSize) {
-              const batch = candidates.slice(i, i + batchSize);
-              
-              for (const candidate of batch) {
-                try {
-                  letters[candidate.id] = generateLetterForCandidate(
-                    candidate,
-                    concern,
-                    documentInsights,
-                    tone
-                  );
-                } catch (err) {
-                  console.error(`Error generating letter for ${candidate.name}:`, err);
-                  letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
-                }
+            for (const candidate of batch) {
+              try {
+                letters[candidate.id] = generateLetterForCandidate(
+                  candidate,
+                  concern,
+                  documentInsights,
+                  tone
+                );
+              } catch (err) {
+                console.error(`Error generating letter for ${candidate.name}:`, err);
+                letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
               }
             }
-            
-            resolve(letters);
-          } catch (error) {
-            console.error("Error in letter generation process:", error);
-            resolve({});
           }
-        }, 10);
-      });
-    } else {
-      const letters: Record<string, string> = {};
-      
-      for (const candidate of candidates) {
-        try {
-          letters[candidate.id] = generateLetterForCandidate(
-            candidate,
-            concern,
-            '',
-            tone
-          );
-        } catch (err) {
-          console.error(`Error generating letter for ${candidate.name}:`, err);
-          letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
+          
+          resolve(letters);
+        } catch (error) {
+          console.error("Error in letter generation process:", error);
+          resolve({});
         }
-      }
-      
-      return letters;
-    }
+      }, 10);
+    });
   } catch (error) {
     console.error("Fatal error in generateLetters:", error);
     return {};

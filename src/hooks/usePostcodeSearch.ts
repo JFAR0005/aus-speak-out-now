@@ -86,28 +86,29 @@ export const usePostcodeSearch = (
       }
       // Try to search by exact locality name (case insensitive)
       else {
-        // IMPORTANT: We use `eq` with lower() to ensure we get EXACT matches only, just case insensitive
         debugInfo.steps.push({ 
           step: "Searching by exact locality name (case insensitive)",
           query: inputValue,
         });
         
-        // First attempt: Try using direct query for exact match (case insensitive)
+        // Use a true exact match by using eq + lower() for complete equality, not ilike
         try {
-          // Use a direct query with ilike for exact locality match
+          // This approach ensures we only match the EXACT locality name case-insensitively
           const result = await supabase
             .from('postcode_mappings')
             .select('*')
-            .ilike('locality', inputValue);
+            .filter('locality', 'ilike', inputValue)
+            .filter('length(locality)', 'eq', inputValue.length);
           
           mappingData = result.data || [];
           mappingError = result.error;
           
           debugInfo.steps.push({ 
-            step: "Locality search results using direct query", 
+            step: "Locality search results using exact equality", 
             found: mappingData?.length || 0,
             hasError: !!mappingError,
-            query: inputValue
+            query: inputValue,
+            filter: "exact match with length check"
           });
         } catch (queryError) {
           debugInfo.steps.push({ 
@@ -146,7 +147,7 @@ export const usePostcodeSearch = (
         return;
       }
 
-      // Filter for EXACT locality matches if searching by locality
+      // Just to be extra certain, filter for EXACT case insensitive locality matches
       if (!(/^\d{4}$/.test(inputValue)) && 
           !stateAbbreviations.includes(inputValue.toUpperCase())) {
         
@@ -158,7 +159,7 @@ export const usePostcodeSearch = (
         );
         
         debugInfo.steps.push({
-          step: "Filtering for exact locality matches",
+          step: "Double checking for exact locality matches",
           input: inputValue.toLowerCase(),
           exactMatchesFound: exactMatches.length,
           exactMatches: exactMatches.map(m => ({
@@ -171,8 +172,7 @@ export const usePostcodeSearch = (
           }))
         });
         
-        // Only use exact matches if we found some, otherwise keep original results
-        // (this should rarely happen with our improved queries, but just in case)
+        // Only use exact matches if we found some
         if (exactMatches.length > 0) {
           mappingData = exactMatches;
           

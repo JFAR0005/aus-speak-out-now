@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info } from "lucide-react";
@@ -129,6 +128,9 @@ const PostcodeSearchResults: React.FC<PostcodeSearchResultsProps> = ({
                 {step.query && <p className="font-mono text-xs">Query: {step.query}</p>}
                 {step.queryString && <p className="font-mono text-xs bg-blue-50 p-1 rounded">Exact Query String: "{step.queryString}"</p>}
                 {step.count !== undefined && <p className="font-mono text-xs">Count: {step.count}</p>}
+                {step.electorates && <p className="font-mono text-xs bg-green-50 p-1 rounded">Electorates: {step.electorates}</p>}
+                {step.matchingLocalitiesFound && <p className="font-mono text-xs">All matches: {step.matchingLocalitiesFound}</p>}
+                {step.exactLocalitiesKept && <p className="font-mono text-xs bg-amber-50 p-1 rounded">Exact matches: {step.exactLocalitiesKept}</p>}
                 {step.error && (
                   <div className="mt-1 p-1 bg-red-50 rounded text-xs font-mono">
                     Error: {JSON.stringify(step.error)}

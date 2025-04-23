@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -91,31 +92,36 @@ export const usePostcodeSearch = (
           query: inputValue,
         });
         
-        // First attempt: Try simple exact match using ilike
+        // First attempt: Get all records with similar locality name
         const result = await supabase
           .from('postcode_mappings')
           .select('*')
           .ilike('locality', inputValue);
         
-        mappingData = result.data || [];
+        const allMatches = result.data || [];
         mappingError = result.error;
         
-        // If we found results, filter them in JavaScript for exact matches
-        if (!mappingError && mappingData && mappingData.length > 0) {
-          const exactMatches = mappingData.filter(m => 
+        // If we found results, strictly filter them in JavaScript for EXACT locality matches only
+        if (!mappingError && allMatches && allMatches.length > 0) {
+          // Get exact matches only - this is critical for correct results
+          mappingData = allMatches.filter(m => 
             m.locality && 
             typeof m.locality === 'string' && 
             m.locality.toLowerCase() === inputValue.toLowerCase()
           );
           
-          // Only use the filtered exact matches if we found any
-          if (exactMatches.length > 0) {
-            mappingData = exactMatches;
-          }
+          debugInfo.steps.push({ 
+            step: "Filtered exact locality matches", 
+            allMatches: allMatches.length,
+            exactMatches: mappingData.length,
+            query: inputValue,
+            matchingLocalitiesFound: allMatches.map(m => m.locality).join(', '),
+            exactLocalitiesKept: mappingData.map(m => m.locality).join(', ')
+          });
         }
         
         debugInfo.steps.push({ 
-          step: "Locality search results", 
+          step: "Final locality search results", 
           found: mappingData?.length || 0,
           hasError: !!mappingError,
           query: inputValue
@@ -150,7 +156,7 @@ export const usePostcodeSearch = (
         return;
       }
 
-      // Just to be extra certain, filter for EXACT case insensitive locality matches
+      // Just to be extra certain, filter for EXACT case insensitive locality matches again
       if (!(/^\d{4}$/.test(inputValue)) && 
           !stateAbbreviations.includes(inputValue.toUpperCase())) {
         
@@ -181,13 +187,18 @@ export const usePostcodeSearch = (
           
           debugInfo.steps.push({
             step: "Using filtered exact matches",
-            count: mappingData.length
+            count: mappingData.length,
+            electorates: mappingData.map(m => m.electorate).join(', ')
           });
         }
       }
 
       setMappings(mappingData);
-      debugInfo.steps.push({ step: "Final mappings set", count: mappingData.length });
+      debugInfo.steps.push({ 
+        step: "Final mappings set", 
+        count: mappingData.length,
+        electorates: mappingData.map(m => m.electorate).join(', ')
+      });
       console.log("Found mappings:", mappingData);
 
       // Make sure we're only dealing with string values for electorate and state
@@ -288,7 +299,11 @@ export const usePostcodeSearch = (
         debugInfo.steps.push({ 
           step: "Final House candidates results", 
           count: houseData.length,
-          houseData
+          houseData: houseData.map(c => ({
+            name: `${c.ballotGivenName || ''} ${c.surname || ''}`.trim(),
+            electorate: c.electorate,
+            party: c.partyBallotName
+          }))
         });
         
         console.log("Final House candidates:", houseData);

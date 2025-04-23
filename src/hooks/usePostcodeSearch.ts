@@ -42,7 +42,8 @@ export const usePostcodeSearch = (
       const inputValue = postcode.trim();
       const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
       
-      let { data: mappingData, error: mappingError } = { data: null, error: null };
+      let mappingData: any[] = [];
+      let mappingError: any = null;
       
       // Try to search by exact postcode if it's a 4-digit number
       if (/^\d{4}$/.test(inputValue)) {
@@ -54,7 +55,7 @@ export const usePostcodeSearch = (
           .select('*')
           .eq('postcode', numericPostcode);
           
-        mappingData = result.data;
+        mappingData = result.data || [];
         mappingError = result.error;
         
         debugInfo.steps.push({ 
@@ -73,7 +74,7 @@ export const usePostcodeSearch = (
           .select('*')
           .eq('state', stateCode);
           
-        mappingData = result.data;
+        mappingData = result.data || [];
         mappingError = result.error;
         
         debugInfo.steps.push({ 
@@ -92,32 +93,40 @@ export const usePostcodeSearch = (
         });
         
         // First attempt: Try with raw_locality for exact match
-        const result = await supabase.rpc('exact_locality_match', { search_term: inputValue.toLowerCase() });
-        
-        mappingData = result.data;
-        mappingError = result.error;
-        
-        debugInfo.steps.push({ 
-          step: "Locality search results using RPC function", 
-          found: mappingData?.length || 0,
-          hasError: !!mappingError,
-          query: inputValue.toLowerCase()
-        });
+        try {
+          const result = await supabase.rpc('exact_locality_match', { search_term: inputValue.toLowerCase() });
+          
+          mappingData = result.data || [];
+          mappingError = result.error;
+          
+          debugInfo.steps.push({ 
+            step: "Locality search results using RPC function", 
+            found: mappingData?.length || 0,
+            hasError: !!mappingError,
+            query: inputValue.toLowerCase()
+          });
+        } catch (rpcError) {
+          debugInfo.steps.push({ 
+            step: "RPC function error", 
+            error: rpcError
+          });
+          mappingError = rpcError;
+        }
         
         // If RPC function fails or doesn't exist, fall back to direct query
-        if (mappingError || !mappingData) {
+        if (mappingError || !mappingData || mappingData.length === 0) {
           debugInfo.steps.push({ 
             step: "RPC function failed or doesn't exist, using direct query", 
             error: mappingError
           });
           
-          // Direct SQL query equivalent using lower() for case-insensitive exact match
+          // Direct SQL query equivalent using ilike for case-insensitive exact match
           const directResult = await supabase
             .from('postcode_mappings')
             .select('*')
-            .filter('locality', 'ilike', inputValue);
+            .ilike('locality', inputValue);
             
-          mappingData = directResult.data;
+          mappingData = directResult.data || [];
           mappingError = directResult.error;
           
           debugInfo.steps.push({ 
@@ -126,24 +135,6 @@ export const usePostcodeSearch = (
             hasError: !!directResult.error,
             query: inputValue
           });
-          
-          // If still no data, try one more time with exact match using lower() function
-          if ((!mappingData || mappingData.length === 0) && !mappingError) {
-            const exactMatchResult = await supabase
-              .from('postcode_mappings')
-              .select('*')
-              .or(`locality.ilike.${inputValue}`);
-              
-            mappingData = exactMatchResult.data;
-            mappingError = exactMatchResult.error;
-            
-            debugInfo.steps.push({ 
-              step: "Final attempt with or/ilike", 
-              found: mappingData?.length || 0,
-              hasError: !!exactMatchResult.error,
-              query: inputValue
-            });
-          }
         }
       }
 
@@ -179,8 +170,11 @@ export const usePostcodeSearch = (
       if (!(/^\d{4}$/.test(inputValue)) && 
           !stateAbbreviations.includes(inputValue.toUpperCase())) {
         
+        // Ensure we're working with strings for comparison
         const exactMatches = mappingData.filter(m => 
-          m.locality && m.locality.toLowerCase() === inputValue.toLowerCase()
+          m.locality && 
+          typeof m.locality === 'string' && 
+          m.locality.toLowerCase() === inputValue.toLowerCase()
         );
         
         debugInfo.steps.push({
@@ -213,8 +207,16 @@ export const usePostcodeSearch = (
       debugInfo.steps.push({ step: "Final mappings set", count: mappingData.length });
       console.log("Found mappings:", mappingData);
 
-      const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
-      const uniqueStates = [...new Set(mappingData.map(m => m.state))];
+      // Make sure we're only dealing with string values for electorate and state
+      const uniqueElectorates = [...new Set(mappingData
+        .map(m => m.electorate)
+        .filter(e => typeof e === 'string')
+      )];
+      
+      const uniqueStates = [...new Set(mappingData
+        .map(m => m.state)
+        .filter(s => typeof s === 'string')
+      )];
       
       debugInfo.steps.push({ 
         step: "Extracted unique values", 
@@ -256,9 +258,10 @@ export const usePostcodeSearch = (
         console.log("Searching for House candidates in electorates:", uniqueElectorates);
         
         for (const electorateName of uniqueElectorates) {
-          if (!electorateName) {
+          if (!electorateName || typeof electorateName !== 'string') {
             debugInfo.steps.push({ 
-              step: "Skipping empty electorate name", 
+              step: "Skipping invalid electorate name", 
+              value: electorateName
             });
             continue;
           }
@@ -291,68 +294,12 @@ export const usePostcodeSearch = (
             continue;
           }
           
-          // Try with a direct ilike search with wildcard
-          const { data: partialData, error: partialError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .ilike('electorate', `%${electorateName}%`);
-          
+          // No longer trying partial matches - exact matches only
           debugInfo.steps.push({ 
-            step: `Querying with wildcard for "${electorateName}"`, 
-            queryString: `%${electorateName}%`,
-            error: partialError || null
-          });
-          
-          if (partialError) {
-            console.error(`Error with wildcard query for ${electorateName}:`, partialError);
-            continue;
-          }
-          
-          if (partialData && partialData.length > 0) {
-            debugInfo.steps.push({ 
-              step: `Found House candidates with wildcard match for "${electorateName}"`, 
-              count: partialData.length,
-              queryString: `%${electorateName}%`
-            });
-            houseData = [...houseData, ...partialData];
-            console.log(`Found ${partialData.length} House candidates with wildcard match for ${electorateName}`);
-            continue;
-          }
-          
-          // Try extra normalization (lowercase)
-          const normalizedElectorate = electorateName.toLowerCase().trim();
-          const { data: normalizedData, error: normalizedError } = await supabase
-            .from('House of Representatives Candidates')
-            .select('*')
-            .ilike('electorate', normalizedElectorate);
-          
-          debugInfo.steps.push({ 
-            step: `Querying with normalized string for "${electorateName}"`, 
-            queryString: normalizedElectorate,
-            error: normalizedError || null
-          });
-          
-          if (normalizedError) {
-            console.error(`Error with normalized query for ${electorateName}:`, normalizedError);
-            continue;
-          }
-          
-          if (normalizedData && normalizedData.length > 0) {
-            debugInfo.steps.push({ 
-              step: `Found House candidates with normalized match for "${electorateName}"`, 
-              count: normalizedData.length,
-              queryString: normalizedElectorate
-            });
-            houseData = [...houseData, ...normalizedData];
-            console.log(`Found ${normalizedData.length} House candidates with normalized match for ${electorateName}`);
-            continue;
-          }
-          
-          debugInfo.steps.push({ 
-            step: `No House candidates found for "${electorateName}" after multiple query attempts`, 
+            step: `No House candidates found for "${electorateName}" with exact match`, 
             electorate: electorateName
           });
-          console.log(`No House candidates found for "${electorateName}" after multiple query attempts`);
+          console.log(`No House candidates found for "${electorateName}" with exact match`);
         }
         
         debugInfo.steps.push({ 
@@ -379,7 +326,11 @@ export const usePostcodeSearch = (
                 sampleCandidates: allCandidates.slice(0, 5)
               });
               
-              const dbElectorates = [...new Set(allCandidates.map((c: any) => c.electorate))];
+              const dbElectorates = [...new Set(allCandidates
+                .map((c: any) => c.electorate)
+                .filter((e: any) => typeof e === 'string')
+              )];
+              
               debugInfo.steps.push({
                 step: "Sample electorates in database",
                 electorates: dbElectorates.slice(0, 10)
@@ -398,31 +349,35 @@ export const usePostcodeSearch = (
         debugInfo.steps.push({ step: "Starting Senate candidate search", states: uniqueStates });
         console.log("Searching for Senate candidates in states:", uniqueStates);
         
-        const { data: senateResults, error: senateError } = await supabase
-          .from('Senate Candidates')
-          .select('*')
-          .in('state', uniqueStates);
+        if (uniqueStates.length > 0) {
+          const { data: senateResults, error: senateError } = await supabase
+            .from('Senate Candidates')
+            .select('*')
+            .in('state', uniqueStates);
 
-        if (senateError) {
-          console.error("Senate candidates query error:", senateError);
+          if (senateError) {
+            console.error("Senate candidates query error:", senateError);
+            debugInfo.steps.push({ 
+              step: "Error querying for Senate candidates", 
+              error: senateError 
+            });
+            throw senateError;
+          }
+          
           debugInfo.steps.push({ 
-            step: "Error querying for Senate candidates", 
-            error: senateError 
+            step: "Senate candidates found", 
+            count: senateResults?.length || 0,
+            results: senateResults
           });
-          throw senateError;
-        }
-        
-        debugInfo.steps.push({ 
-          step: "Senate candidates found", 
-          count: senateResults?.length || 0,
-          results: senateResults
-        });
-        
-        console.log("Senate candidates found:", senateResults);
-        
-        if (senateResults && senateResults.length > 0) {
-          senateData = senateResults;
-          setSenateResults(senateData);
+          
+          console.log("Senate candidates found:", senateResults);
+          
+          if (senateResults && senateResults.length > 0) {
+            senateData = senateResults;
+            setSenateResults(senateData);
+          }
+        } else {
+          debugInfo.steps.push({ step: "No valid states found for Senate search" });
         }
       }
 

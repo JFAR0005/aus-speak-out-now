@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChamberType } from "@/types";
 
@@ -34,23 +33,6 @@ export const fetchSenateCandidates = async (states: string[]): Promise<any[]> =>
   return data || [];
 };
 
-export const formatCandidateData = (
-  houseData: any[],
-  senateData: any[],
-  chamberType: ChamberType | null,
-  primaryMapping: any
-) => {
-  return {
-    id: primaryMapping.postcode.toString(),
-    name: primaryMapping.electorate,
-    state: primaryMapping.state,
-    candidates: [
-      ...(chamberType !== "senate" ? formatHouseCandidates(houseData) : []),
-      ...(chamberType !== "house" ? formatSenateCandidates(senateData) : []),
-    ],
-  };
-};
-
 const formatHouseCandidates = (candidates: any[]) => {
   return candidates.map((candidate) => ({
     id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
@@ -68,10 +50,26 @@ const formatSenateCandidates = (candidates: any[]) => {
     id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
     name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
     party: candidate.partyBallotName || 'Independent',
-    email: "contact@example.com",
+    email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",
     policies: [],
     chamber: "senate" as ChamberType,
     state: candidate.state,
   }));
 };
 
+export const formatCandidateData = (
+  houseData: any[],
+  senateData: any[],
+  chamberType: ChamberType | null,
+  primaryMapping: any
+) => {
+  return {
+    id: primaryMapping.postcode.toString(),
+    name: primaryMapping.electorate,
+    state: primaryMapping.state,
+    candidates: [
+      ...(chamberType !== "senate" ? formatHouseCandidates(houseData) : []),
+      ...(chamberType !== "house" ? formatSenateCandidates(senateData) : []),
+    ],
+  };
+};

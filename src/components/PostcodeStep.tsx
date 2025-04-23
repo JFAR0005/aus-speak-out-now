@@ -5,6 +5,7 @@ import { Search, Loader2, ChevronLeft } from "lucide-react";
 import { usePostcodeSearch } from "@/hooks/usePostcodeSearch";
 import PostcodeSearchResults from "./PostcodeSearchResults";
 import SearchTips from "./SearchTips";
+import Disclaimer from "./Disclaimer";
 import { ChamberType, Electorate } from "../types";
 
 interface PostcodeStepProps {
@@ -96,6 +97,8 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
         />
 
         <SearchTips chamberType={chamberType} />
+
+        <Disclaimer />
 
         <div className="flex justify-between pt-4">
           <Button variant="outline" onClick={onPrevious}>

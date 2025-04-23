@@ -68,6 +68,7 @@ export type Database = {
           ballotGivenName: string | null
           ballotPosition: string | null
           column: string | null
+          email: string | null
           groupName: string | null
           partyBallotName: string | null
           state: string | null
@@ -77,6 +78,7 @@ export type Database = {
           ballotGivenName?: string | null
           ballotPosition?: string | null
           column?: string | null
+          email?: string | null
           groupName?: string | null
           partyBallotName?: string | null
           state?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           ballotGivenName?: string | null
           ballotPosition?: string | null
           column?: string | null
+          email?: string | null
           groupName?: string | null
           partyBallotName?: string | null
           state?: string | null

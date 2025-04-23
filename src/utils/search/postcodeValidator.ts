@@ -1,6 +1,6 @@
 
 export const isValidPostcode = (input: string): boolean => {
-  return /^\d{4}$/.test(input);
+  return /^\d{3,4}$/.test(input);
 };
 
 export const validatePostcodeInput = (input: string): string | null => {
@@ -9,9 +9,8 @@ export const validatePostcodeInput = (input: string): string | null => {
   }
   
   if (!isValidPostcode(input.trim())) {
-    return "Please enter a valid 4-digit postcode";
+    return "Please enter a valid 3 or 4-digit postcode";
   }
   
   return null;
 };
-

@@ -92,49 +92,29 @@ export const usePostcodeSearch = (
           query: inputValue,
         });
         
-        // First attempt: Try with raw_locality for exact match
+        // First attempt: Try using direct query for exact match (case insensitive)
         try {
-          const result = await supabase.rpc('exact_locality_match', { search_term: inputValue.toLowerCase() });
+          // Use a direct query with ilike for exact locality match
+          const result = await supabase
+            .from('postcode_mappings')
+            .select('*')
+            .ilike('locality', inputValue);
           
           mappingData = result.data || [];
           mappingError = result.error;
           
           debugInfo.steps.push({ 
-            step: "Locality search results using RPC function", 
+            step: "Locality search results using direct query", 
             found: mappingData?.length || 0,
             hasError: !!mappingError,
-            query: inputValue.toLowerCase()
-          });
-        } catch (rpcError) {
-          debugInfo.steps.push({ 
-            step: "RPC function error", 
-            error: rpcError
-          });
-          mappingError = rpcError;
-        }
-        
-        // If RPC function fails or doesn't exist, fall back to direct query
-        if (mappingError || !mappingData || mappingData.length === 0) {
-          debugInfo.steps.push({ 
-            step: "RPC function failed or doesn't exist, using direct query", 
-            error: mappingError
-          });
-          
-          // Direct SQL query equivalent using ilike for case-insensitive exact match
-          const directResult = await supabase
-            .from('postcode_mappings')
-            .select('*')
-            .ilike('locality', inputValue);
-            
-          mappingData = directResult.data || [];
-          mappingError = directResult.error;
-          
-          debugInfo.steps.push({ 
-            step: "Direct locality query results", 
-            found: mappingData?.length || 0,
-            hasError: !!directResult.error,
             query: inputValue
           });
+        } catch (queryError) {
+          debugInfo.steps.push({ 
+            step: "Query error", 
+            error: queryError
+          });
+          mappingError = queryError;
         }
       }
 
@@ -208,14 +188,14 @@ export const usePostcodeSearch = (
       console.log("Found mappings:", mappingData);
 
       // Make sure we're only dealing with string values for electorate and state
-      const uniqueElectorates = [...new Set(mappingData
+      const uniqueElectorates: string[] = [...new Set(mappingData
         .map(m => m.electorate)
-        .filter(e => typeof e === 'string')
+        .filter((e): e is string => typeof e === 'string')
       )];
       
-      const uniqueStates = [...new Set(mappingData
+      const uniqueStates: string[] = [...new Set(mappingData
         .map(m => m.state)
-        .filter(s => typeof s === 'string')
+        .filter((s): s is string => typeof s === 'string')
       )];
       
       debugInfo.steps.push({ 
@@ -328,7 +308,7 @@ export const usePostcodeSearch = (
               
               const dbElectorates = [...new Set(allCandidates
                 .map((c: any) => c.electorate)
-                .filter((e: any) => typeof e === 'string')
+                .filter((e): e is string => typeof e === 'string')
               )];
               
               debugInfo.steps.push({

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -91,24 +92,41 @@ export const usePostcodeSearch = (
           query: inputValue,
         });
         
-        // Use a true exact match by using eq + lower() for complete equality, not ilike
+        // Use ilike for case-insensitive exact match, without using length() function
         try {
-          // This approach ensures we only match the EXACT locality name case-insensitively
           const result = await supabase
             .from('postcode_mappings')
             .select('*')
-            .filter('locality', 'ilike', inputValue)
-            .filter('length(locality)', 'eq', inputValue.length);
+            .ilike('locality', `^${inputValue}$`);
           
           mappingData = result.data || [];
           mappingError = result.error;
           
+          // If the regex approach didn't work, try a simple ilike
+          if (mappingError || mappingData.length === 0) {
+            const exactResult = await supabase
+              .from('postcode_mappings')
+              .select('*')
+              .ilike('locality', inputValue);
+            
+            const exactData = exactResult.data || [];
+            
+            // Filter in JavaScript for exact matches
+            if (exactData && exactData.length > 0) {
+              mappingData = exactData.filter(m => 
+                m.locality && 
+                typeof m.locality === 'string' && 
+                m.locality.toLowerCase() === inputValue.toLowerCase()
+              );
+              mappingError = exactResult.error;
+            }
+          }
+          
           debugInfo.steps.push({ 
-            step: "Locality search results using exact equality", 
+            step: "Locality search results", 
             found: mappingData?.length || 0,
             hasError: !!mappingError,
-            query: inputValue,
-            filter: "exact match with length check"
+            query: inputValue
           });
         } catch (queryError) {
           debugInfo.steps.push({ 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -56,12 +55,44 @@ export const usePostcodeSearch = (
           mappingQuery = mappingQuery.eq('state', upperInput);
           debugInfo.steps.push({ step: "Searching by state abbreviation", query: upperInput });
         } else {
-          mappingQuery = mappingQuery.ilike('locality', `%${postcode}%`);
-          debugInfo.steps.push({ step: "Searching by locality", query: postcode });
+          // Improving suburb search - use exact match for locality rather than partial match
+          // First try an exact case-insensitive match
+          const searchTerm = postcode.trim();
+          debugInfo.steps.push({ 
+            step: "Searching by locality - exact match", 
+            query: searchTerm 
+          });
+          
+          mappingQuery = mappingQuery.ilike('locality', searchTerm);
         }
       }
 
       const { data: mappingData, error: mappingError } = await mappingQuery;
+
+      // If no exact locality match was found and it's not a numeric postcode or state abbreviation,
+      // try a partial match as a fallback
+      if ((!mappingData || mappingData.length === 0) && 
+          !/^\d{4}$/.test(postcode) && 
+          !['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].includes(postcode.toUpperCase())) {
+        
+        debugInfo.steps.push({ 
+          step: "No exact locality match found, trying partial match", 
+          query: `%${postcode.trim()}%` 
+        });
+        
+        mappingQuery = supabase.from('postcode_mappings').select('*')
+          .ilike('locality', `%${postcode.trim()}%`);
+          
+        const { data: partialMatchData, error: partialMatchError } = await mappingQuery;
+        
+        if (!partialMatchError && partialMatchData && partialMatchData.length > 0) {
+          debugInfo.steps.push({ 
+            step: "Found matches with partial locality search", 
+            count: partialMatchData.length 
+          });
+          mappingData = partialMatchData;
+        }
+      }
 
       if (mappingError) {
         console.error("Mapping error:", mappingError);
@@ -75,6 +106,25 @@ export const usePostcodeSearch = (
         setDebug(debugInfo);
         setIsSearching(false);
         return;
+      }
+
+      // For suburb searches, prioritize exact matches if any exist
+      if (!/^\d{4}$/.test(postcode) && 
+          !['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].includes(postcode.toUpperCase())) {
+        
+        // Find exact matches (case insensitive)
+        const exactMatches = mappingData.filter(m => 
+          m.locality && m.locality.toLowerCase() === postcode.trim().toLowerCase()
+        );
+        
+        if (exactMatches.length > 0) {
+          debugInfo.steps.push({ 
+            step: "Prioritizing exact locality matches", 
+            exactMatches: exactMatches.length,
+            localities: exactMatches.map(m => m.locality)
+          });
+          mappingData = exactMatches;
+        }
       }
 
       setMappings(mappingData);

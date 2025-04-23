@@ -39,36 +39,127 @@ export const usePostcodeSearch = (
     try {
       console.log(`Searching for ${chamberType} candidates with input: ${postcode}`);
       
-      let mappingQuery = supabase.from('postcode_mappings').select('*');
+      const inputValue = postcode.trim();
+      const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
       
-      if (/^\d{4}$/.test(postcode)) {
-        // For numeric postcodes, convert to number for the query (exact match)
-        const numericPostcode = Number(postcode);
-        mappingQuery = mappingQuery.eq('postcode', numericPostcode);
-        debugInfo.steps.push({ step: "Searching by exact postcode", query: postcode });
-      } 
-      else {
-        const stateAbbreviations = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
-        const upperInput = postcode.toUpperCase();
+      let { data: mappingData, error: mappingError } = { data: null, error: null };
+      
+      // Try to search by exact postcode if it's a 4-digit number
+      if (/^\d{4}$/.test(inputValue)) {
+        const numericPostcode = Number(inputValue);
+        debugInfo.steps.push({ step: "Searching by exact postcode", query: inputValue, numericValue: numericPostcode });
         
-        if (stateAbbreviations.includes(upperInput)) {
-          // Exact match for state abbreviation
-          mappingQuery = mappingQuery.eq('state', upperInput);
-          debugInfo.steps.push({ step: "Searching by exact state abbreviation", query: upperInput });
-        } else {
-          // Exact match for locality (case insensitive)
-          const searchTerm = postcode.trim();
+        const result = await supabase
+          .from('postcode_mappings')
+          .select('*')
+          .eq('postcode', numericPostcode);
+          
+        mappingData = result.data;
+        mappingError = result.error;
+        
+        debugInfo.steps.push({ 
+          step: "Postcode search results", 
+          found: mappingData?.length || 0,
+          hasError: !!mappingError
+        });
+      }
+      // Try to search by state abbreviation (exact match)
+      else if (stateAbbreviations.includes(inputValue.toUpperCase())) {
+        const stateCode = inputValue.toUpperCase();
+        debugInfo.steps.push({ step: "Searching by exact state abbreviation", query: stateCode });
+        
+        const result = await supabase
+          .from('postcode_mappings')
+          .select('*')
+          .eq('state', stateCode);
+          
+        mappingData = result.data;
+        mappingError = result.error;
+        
+        debugInfo.steps.push({ 
+          step: "State search results", 
+          found: mappingData?.length || 0,
+          hasError: !!mappingError,
+          stateCode
+        });
+      }
+      // Try to search by exact locality name (case insensitive)
+      else {
+        // IMPORTANT: We use `eq` with lower() to ensure we get EXACT matches only, just case insensitive
+        debugInfo.steps.push({ 
+          step: "Searching by exact locality name (case insensitive)",
+          query: inputValue,
+        });
+        
+        // First attempt: Try with raw_locality for exact match
+        const result = await supabase.rpc('exact_locality_match', { search_term: inputValue.toLowerCase() });
+        
+        mappingData = result.data;
+        mappingError = result.error;
+        
+        debugInfo.steps.push({ 
+          step: "Locality search results using RPC function", 
+          found: mappingData?.length || 0,
+          hasError: !!mappingError,
+          query: inputValue.toLowerCase()
+        });
+        
+        // If RPC function fails or doesn't exist, fall back to direct query
+        if (mappingError || !mappingData) {
           debugInfo.steps.push({ 
-            step: "Searching by exact locality match (case insensitive)", 
-            query: searchTerm 
+            step: "RPC function failed or doesn't exist, using direct query", 
+            error: mappingError
           });
           
-          // Use ilike for case insensitivity but without wildcards for exact match
-          mappingQuery = mappingQuery.ilike('locality', searchTerm);
+          // Direct SQL query equivalent using lower() for case-insensitive exact match
+          const directResult = await supabase
+            .from('postcode_mappings')
+            .select('*')
+            .filter('locality', 'ilike', inputValue);
+            
+          mappingData = directResult.data;
+          mappingError = directResult.error;
+          
+          debugInfo.steps.push({ 
+            step: "Direct locality query results", 
+            found: mappingData?.length || 0,
+            hasError: !!directResult.error,
+            query: inputValue
+          });
+          
+          // If still no data, try one more time with exact match using lower() function
+          if ((!mappingData || mappingData.length === 0) && !mappingError) {
+            const exactMatchResult = await supabase
+              .from('postcode_mappings')
+              .select('*')
+              .or(`locality.ilike.${inputValue}`);
+              
+            mappingData = exactMatchResult.data;
+            mappingError = exactMatchResult.error;
+            
+            debugInfo.steps.push({ 
+              step: "Final attempt with or/ilike", 
+              found: mappingData?.length || 0,
+              hasError: !!exactMatchResult.error,
+              query: inputValue
+            });
+          }
         }
       }
 
-      let { data: mappingData, error: mappingError } = await mappingQuery;
+      // Log all results for debugging
+      if (mappingData && mappingData.length > 0) {
+        debugInfo.steps.push({
+          step: "Raw mappings before processing",
+          count: mappingData.length,
+          mappings: mappingData.map(m => ({
+            locality: m.locality,
+            electorate: m.electorate,
+            state: m.state,
+            postcode: m.postcode
+          }))
+        });
+      }
 
       if (mappingError) {
         console.error("Mapping error:", mappingError);
@@ -84,8 +175,42 @@ export const usePostcodeSearch = (
         return;
       }
 
+      // Filter for EXACT locality matches if searching by locality
+      if (!(/^\d{4}$/.test(inputValue)) && 
+          !stateAbbreviations.includes(inputValue.toUpperCase())) {
+        
+        const exactMatches = mappingData.filter(m => 
+          m.locality && m.locality.toLowerCase() === inputValue.toLowerCase()
+        );
+        
+        debugInfo.steps.push({
+          step: "Filtering for exact locality matches",
+          input: inputValue.toLowerCase(),
+          exactMatchesFound: exactMatches.length,
+          exactMatches: exactMatches.map(m => ({
+            locality: m.locality,
+            electorate: m.electorate
+          })),
+          originalMatches: mappingData.map(m => ({
+            locality: m.locality,
+            electorate: m.electorate
+          }))
+        });
+        
+        // Only use exact matches if we found some, otherwise keep original results
+        // (this should rarely happen with our improved queries, but just in case)
+        if (exactMatches.length > 0) {
+          mappingData = exactMatches;
+          
+          debugInfo.steps.push({
+            step: "Using filtered exact matches",
+            count: mappingData.length
+          });
+        }
+      }
+
       setMappings(mappingData);
-      debugInfo.steps.push({ step: "Found mappings", count: mappingData.length, mappings: mappingData });
+      debugInfo.steps.push({ step: "Final mappings set", count: mappingData.length });
       console.log("Found mappings:", mappingData);
 
       const uniqueElectorates = [...new Set(mappingData.map(m => m.electorate))];
@@ -310,7 +435,6 @@ export const usePostcodeSearch = (
             id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
             name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
             party: candidate.partyBallotName || 'Independent',
-            // updated to use the real email if available
             email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",
             policies: [],
             chamber: "house" as ChamberType,

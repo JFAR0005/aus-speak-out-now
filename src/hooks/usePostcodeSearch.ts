@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Electorate, ChamberType } from "../types";
@@ -67,7 +68,7 @@ export const usePostcodeSearch = (
         }
       }
 
-      const { data: mappingData, error: mappingError } = await mappingQuery;
+      let { data: mappingData, error: mappingError } = await mappingQuery;
 
       // If no exact locality match was found and it's not a numeric postcode or state abbreviation,
       // try a partial match as a fallback

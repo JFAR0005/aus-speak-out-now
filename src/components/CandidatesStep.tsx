@@ -24,7 +24,7 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
-  // Handler to toggle candidate selection
+  // Handler to toggle candidate selection - ensure we only toggle the specified candidate
   const handleToggleCandidate = (candidateId: string) => {
     onSelectCandidate(candidateId);
   };

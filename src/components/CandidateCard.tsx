@@ -23,23 +23,27 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Use the checked state directly from the checkbox
+  // Handle checkbox change
   const handleToggleSelect = () => {
     onToggleSelect(candidate.id);
   };
 
   // For handling click on the card
   const handleCardClick = (event: React.MouseEvent) => {
-    // Only trigger if not clicking on a button or checkbox
+    // Prevent the event from bubbling up to parent elements
+    event.stopPropagation();
+    
+    // Only trigger if not clicking on a button, checkbox or its label
     if (!(event.target instanceof HTMLButtonElement) && 
-        !(event.target instanceof HTMLInputElement)) {
+        !(event.target instanceof HTMLInputElement) &&
+        !(event.target instanceof HTMLLabelElement)) {
       onToggleSelect(candidate.id);
     }
   };
 
   return (
     <Card 
-      className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
+      className={`transition-all cursor-pointer ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
       onClick={handleCardClick}
     >
       <CardHeader className="pb-2">
@@ -137,7 +141,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           size="sm" 
           className="text-xs w-full"
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent card click
             window.open(`mailto:${candidate.email}`);
           }}
         >

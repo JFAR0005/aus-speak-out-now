@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,9 @@ import { usePostcodeSearch } from "@/hooks/usePostcodeSearch";
 import PostcodeSearchResults from "./PostcodeSearchResults";
 import SearchTips from "./SearchTips";
 import Disclaimer from "./Disclaimer";
+import SuburbSelector from "./SuburbSelector";
 import { ChamberType, Electorate } from "../types";
+import { PostcodeMapping } from "@/utils/search/types";
 
 interface PostcodeStepProps {
   chamberType: ChamberType | null;
@@ -31,7 +34,9 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     houseResults,
     senateResults,
     handleSearch,
-    debug
+    handleSuburbSelect,
+    debug,
+    showSuburbSelector
   } = usePostcodeSearch(chamberType, postcode, onContinue);
 
   const getPlaceholderText = () => {
@@ -82,15 +87,24 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
           </Button>
         </div>
 
-        <PostcodeSearchResults
-          error={error}
-          info={info}
-          mappings={mappings}
-          houseResults={houseResults}
-          senateResults={senateResults}
-          chamberType={chamberType}
-          debug={debug}
-        />
+        {showSuburbSelector && mappings.length > 0 && (
+          <SuburbSelector 
+            mappings={mappings} 
+            onSuburbSelect={handleSuburbSelect} 
+          />
+        )}
+
+        {!showSuburbSelector && (
+          <PostcodeSearchResults
+            error={error}
+            info={info}
+            mappings={mappings}
+            houseResults={houseResults}
+            senateResults={senateResults}
+            chamberType={chamberType}
+            debug={debug}
+          />
+        )}
 
         <SearchTips chamberType={chamberType} />
 

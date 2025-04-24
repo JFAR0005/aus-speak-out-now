@@ -67,7 +67,9 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
                   className={`w-fit ${
                     candidate.party === "Australian Labor Party" 
                       ? "bg-red-100 text-red-800 hover:bg-red-100" 
-                      : candidate.party === "Liberal Party of Australia" 
+                      : (candidate.party === "Liberal Party of Australia" || 
+                         candidate.party.includes("LNP") || 
+                         candidate.party === "Liberal")
                       ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
                       : candidate.party === "Australian Greens"
                       ? "bg-green-100 text-green-800 hover:bg-green-100"
@@ -163,3 +165,4 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 };
 
 export default CandidateCard;
+

@@ -17,7 +17,7 @@ const UserDetailsForm = ({ firstName, lastName, phone, email, onChange }: UserDe
 
   const handleEmailChange = (value: string) => {
     // Only validate if there's actually content and it's invalid
-    if (value.trim() !== "" && !value.includes('@')) {
+    if (value && value.trim() !== "" && !value.includes('@')) {
       toast({
         variant: "destructive",
         title: "Invalid email",
@@ -29,7 +29,7 @@ const UserDetailsForm = ({ firstName, lastName, phone, email, onChange }: UserDe
 
   const handlePhoneChange = (value: string) => {
     // Only validate if there's actually content and it's invalid
-    if (value.trim() !== "" && !/^[\d\s\-+()]*$/.test(value)) {
+    if (value && value.trim() !== "" && !/^[\d\s\-+()]*$/.test(value)) {
       toast({
         variant: "destructive",
         title: "Invalid phone number",

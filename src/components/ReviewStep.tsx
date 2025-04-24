@@ -139,6 +139,21 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const handleSendEmail = async (candidateId?: string) => {
     try {
+      const submissionData = {
+        concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
+        tone: sessionStorage.getItem('letterGenerationOptions') ? 
+          JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
+        stance: sessionStorage.getItem('letterGenerationOptions') ? 
+          JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
+        personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
+          JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
+        policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
+          JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
+        ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
+      };
+
+      let mailtoUrl = '';
+      
       if (candidateId && candidateId !== "all") {
         const candidate = selectedCandidatesList.find(c => c.id === candidateId);
         if (candidate) {
@@ -146,19 +161,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           const subjectMatch = letterText.match(/Re: (.*?)(?:\n|$)/);
           const subject = subjectMatch ? subjectMatch[1] : "Constituent Outreach: Your Attention Required";
           
-          const submissionData = {
-            concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
-            tone: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
-            stance: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
-            personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
-            policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
-            ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
-          };
-
           const letters = {
             [candidate.id]: {
               content: letterText,
@@ -171,11 +173,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               }
             }
           };
-
+          
           await saveLetterSubmission(submissionData, letters);
           
-          const body = encodeURIComponent(letterText);
-          window.location.href = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${body}`;
+          mailtoUrl = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(letterText)}`;
+          window.location.href = mailtoUrl;
           
           toast({
             title: "Email client opened",
@@ -190,19 +192,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           const emails = targetCandidates.map(c => c.email).join(";");
           const subject = "Constituent Outreach: Your Attention Required";
           
-          const submissionData = {
-            concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
-            tone: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
-            stance: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
-            personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
-            policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
-              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
-            ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
-          };
-
           const letters = targetCandidates.reduce((acc, candidate) => ({
             ...acc,
             [candidate.id]: {
@@ -216,14 +205,15 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               }
             }
           }), {});
-
+          
           await saveLetterSubmission(submissionData, letters);
           
-          const body = encodeURIComponent(targetCandidates.length === 1 ? 
+          const body = targetCandidates.length === 1 ? 
             editableLetters[targetCandidates[0].id] || generatedLetter : 
-            generatedLetter
-          );
-          window.location.href = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${body}`;
+            generatedLetter;
+            
+          mailtoUrl = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          window.location.href = mailtoUrl;
           
           toast({
             title: "Email client opened",
@@ -231,6 +221,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           });
         }
       }
+      
+      console.log('Mailto URL:', mailtoUrl);
     } catch (error) {
       console.error("Error sending email:", error);
       toast({

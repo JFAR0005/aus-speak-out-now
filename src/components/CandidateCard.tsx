@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Candidate } from "../types";
@@ -23,26 +22,23 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Create a specific handler just for the checkbox click
   const handleCheckboxChange = (checked: boolean | "indeterminate") => {
-    if (checked === true || checked === false) {
-      console.log(`Checkbox clicked for ${candidate.name} (${candidate.id})`);
+    if (typeof checked === 'boolean') {
+      console.log(`CandidateCard: Checkbox clicked for ${candidate.name} (${candidate.id}). New state:`, checked);
       onToggleSelect(candidate.id);
     }
   };
 
   return (
-    <Card className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
+    <Card className={`transition-all pointer-events-none ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Important: Isolate the checkbox in its own click handler container */}
             <div 
+              className="pointer-events-auto relative z-10"
               onClick={(e) => {
                 e.stopPropagation();
-                // Don't do anything else here - let the checkbox component handle it
               }}
-              className="relative z-10"
             >
               <Checkbox
                 id={`select-${candidate.id}`}
@@ -135,9 +131,9 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-xs w-full"
+          className="text-xs w-full pointer-events-auto"
           onClick={(e) => {
-            e.stopPropagation(); // Prevent card click
+            e.stopPropagation();
             window.open(`mailto:${candidate.email}`);
           }}
         >

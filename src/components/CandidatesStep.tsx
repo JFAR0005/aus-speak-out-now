@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Electorate, Candidate } from "../types";
@@ -20,20 +19,15 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   onPrevious,
   onContinue,
 }) => {
-  // Separate House and Senate candidates
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
-  // Handler to toggle candidate selection with better logging
   const handleToggleCandidate = (candidateId: string) => {
-    console.log(`CandidatesStep: Toggling SINGLE candidate ${candidateId}`);
-    console.log('Current selected:', selectedCandidates);
-    
-    // Call the parent handler with the specific candidate ID
+    console.log(`CandidatesStep: Toggling candidate ${candidateId}`);
+    console.log('CandidatesStep: Current selected before toggle:', selectedCandidates);
     onSelectCandidate(candidateId);
   };
 
-  // Debug log selected candidates
   console.log('CandidatesStep: All currently selected candidates:', selectedCandidates);
 
   return (

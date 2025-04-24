@@ -49,68 +49,74 @@ const MessageStep: React.FC<MessageStepProps> = ({
     selectedCandidates.includes(c.id)
   );
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    setUploadedFile(file);
-    setFileError(null);
-    setIsProcessingFile(true);
-    
-    if (file.size > 5 * 1024 * 1024) {
-      setFileError("File too large. Maximum size is 5MB.");
-      setIsProcessingFile(false);
-      return;
-    }
-    
-    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-    if (!validTypes.includes(file.type)) {
-      setFileError("Invalid file type. Please upload PDF, DOC, DOCX, or TXT files only.");
-      setIsProcessingFile(false);
-      return;
-    }
-    
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const limitedText = text.substring(0, 20000);
-        setFileContent(limitedText);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      
+      setUploadedFile(file);
+      setFileError(null);
+      setIsProcessingFile(true);
+      
+      if (file.size > 5 * 1024 * 1024) {
+        setFileError("File too large. Maximum size is 5MB.");
         setIsProcessingFile(false);
-        
-        toast({
-          title: "File processed",
-          description: `${file.name} has been processed. Any relevant insights will be included in your letters.`,
-        });
-      } catch (error) {
-        console.error("Error reading file:", error);
-        setFileError("Could not extract content from the file.");
+        return;
+      }
+      
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+      if (!validTypes.includes(file.type)) {
+        setFileError("Invalid file type. Please upload PDF, DOC, DOCX, or TXT files only.");
+        setIsProcessingFile(false);
+        return;
+      }
+      
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const limitedText = text.substring(0, 20000);
+          setFileContent(limitedText);
+          setIsProcessingFile(false);
+          
+          toast({
+            title: "File processed",
+            description: `${file.name} has been processed. Any relevant insights will be included in your letters.`,
+          });
+        } catch (error) {
+          console.error("Error reading file:", error);
+          setFileError("Could not extract content from the file.");
+          setIsProcessingFile(false);
+          
+          toast({
+            variant: "destructive",
+            title: "Processing failed",
+            description: "Could not extract content from the file.",
+          });
+        }
+      };
+      
+      reader.onerror = () => {
+        setFileError("There was an error reading the file.");
         setIsProcessingFile(false);
         
         toast({
           variant: "destructive",
-          title: "Processing failed",
-          description: "Could not extract content from the file.",
+          title: "File error",
+          description: "There was an error reading the file.",
         });
-      }
-    };
-    
-    reader.onerror = () => {
-      setFileError("There was an error reading the file.");
-      setIsProcessingFile(false);
+      };
       
-      toast({
-        variant: "destructive",
-        title: "File error",
-        description: "There was an error reading the file.",
-      });
-    };
-    
-    if (file.type === "text/plain") {
-      reader.readAsText(file);
-    } else {
-      reader.readAsText(file);
+      if (file.type === "text/plain") {
+        reader.readAsText(file);
+      } else {
+        reader.readAsText(file);
+      }
+    } catch (error) {
+      console.error("File upload error:", error);
+      setFileError("An unexpected error occurred while processing the file.");
+      setIsProcessingFile(false);
     }
   };
 
@@ -126,6 +132,15 @@ const MessageStep: React.FC<MessageStepProps> = ({
         variant: "destructive",
         title: "Missing information",
         description: "Please describe your concern or upload a file.",
+      });
+      return;
+    }
+
+    if (!selectedCandidates.length) {
+      toast({
+        variant: "destructive",
+        title: "No candidates selected",
+        description: "Please select at least one candidate to generate letters.",
       });
       return;
     }
@@ -155,7 +170,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
         
         const letters = await generateLetters(selectedCandidatesList, options);
         
-        if (Object.keys(letters).length === 0) {
+        if (!letters || Object.keys(letters).length === 0) {
           throw new Error("Failed to generate letters");
         }
         
@@ -181,17 +196,16 @@ const MessageStep: React.FC<MessageStepProps> = ({
           title: "Generation failed",
           description: "There was an error generating your letters. Please try again.",
         });
-      } finally {
-        setIsGenerating(false);
       }
     } catch (error) {
-      console.error("Error generating letter:", error);
-      setIsGenerating(false);
+      console.error("Error in letter generation process:", error);
       toast({
         variant: "destructive",
         title: "Generation failed",
-        description: "There was an error generating your letter. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+      setIsGenerating(false);
     }
   };
 

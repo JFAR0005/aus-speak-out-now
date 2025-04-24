@@ -11,6 +11,7 @@ interface TextInputFieldProps {
     title: string;
     content: string;
   };
+  required?: boolean;
 }
 
 const TextInputField: React.FC<TextInputFieldProps> = ({
@@ -19,10 +20,13 @@ const TextInputField: React.FC<TextInputFieldProps> = ({
   onChange,
   placeholder,
   example,
+  required = false,
 }) => {
   return (
     <div>
-      <label className="block mb-2 font-medium">{label}</label>
+      <label className="block mb-2 font-medium">
+        {label} {required ? <span className="text-red-500">*</span> : <span className="text-gray-400">(optional)</span>}
+      </label>
       <Textarea
         placeholder={placeholder}
         value={value}

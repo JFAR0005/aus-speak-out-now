@@ -20,21 +20,52 @@ export const saveLetterSubmission = async (
   letters: Record<string, { content: string; candidate: { id: string; name: string; email: string; party?: string; chamber?: string; } }>
 ) => {
   try {
+    // Only include fields that have content
+    const submissionRecord: any = {
+      concern: submissionData.concern,
+    };
+    
+    // Only add fields that have actual content
+    if (submissionData.senderName && submissionData.senderName.trim()) {
+      submissionRecord.sender_name = submissionData.senderName;
+    }
+    
+    if (submissionData.senderEmail && submissionData.senderEmail.trim()) {
+      submissionRecord.sender_email = submissionData.senderEmail;
+    }
+    
+    if (submissionData.senderPhone && submissionData.senderPhone.trim()) {
+      submissionRecord.sender_phone = submissionData.senderPhone;
+    }
+    
+    if (submissionData.stance) {
+      submissionRecord.stance = submissionData.stance;
+    }
+    
+    if (submissionData.tone) {
+      submissionRecord.tone = submissionData.tone;
+    }
+    
+    if (submissionData.personalExperience && submissionData.personalExperience.trim()) {
+      submissionRecord.personal_experience = submissionData.personalExperience;
+    }
+    
+    if (submissionData.policyIdeas && submissionData.policyIdeas.trim()) {
+      submissionRecord.policy_ideas = submissionData.policyIdeas;
+    }
+    
+    if (submissionData.uploadedContent) {
+      submissionRecord.uploaded_content = submissionData.uploadedContent;
+    }
+    
+    if (submissionData.documentInsights) {
+      submissionRecord.document_insights = submissionData.documentInsights;
+    }
+
     // First, insert the submission record
     const { data: submission, error: submissionError } = await supabase
       .from('letter_submissions')
-      .insert({
-        sender_name: submissionData.senderName,
-        sender_email: submissionData.senderEmail,
-        sender_phone: submissionData.senderPhone,
-        concern: submissionData.concern,
-        stance: submissionData.stance,
-        tone: submissionData.tone,
-        personal_experience: submissionData.personalExperience,
-        policy_ideas: submissionData.policyIdeas,
-        uploaded_content: submissionData.uploadedContent,
-        document_insights: submissionData.documentInsights
-      })
+      .insert(submissionRecord)
       .select()
       .single();
 

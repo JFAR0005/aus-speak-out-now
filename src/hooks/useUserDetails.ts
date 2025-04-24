@@ -39,17 +39,7 @@ export const useUserDetails = () => {
   }, [userDetails]);
 
   const updateUserDetail = (field: string, value: string) => {
-    // Basic validation
-    if (field === 'email' && value.trim() && !value.includes('@')) {
-      console.warn('Invalid email format');
-      return;
-    }
-
-    if (field === 'phone' && value.trim() && !/^[\d\s\-+()]*$/.test(value)) {
-      console.warn('Invalid phone number format');
-      return;
-    }
-
+    // No validation - just update the value
     setUserDetails(prev => ({
       ...prev,
       [field]: value

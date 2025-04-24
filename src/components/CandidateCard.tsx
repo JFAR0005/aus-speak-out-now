@@ -23,14 +23,25 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  const handleToggleSelect = (event: React.MouseEvent | React.ChangeEvent) => {
-    // Stop propagation to prevent double selection
-    event.stopPropagation();
+  // Use the checked state directly from the checkbox
+  const handleToggleSelect = () => {
     onToggleSelect(candidate.id);
   };
 
+  // For handling click on the card
+  const handleCardClick = (event: React.MouseEvent) => {
+    // Only trigger if not clicking on a button or checkbox
+    if (!(event.target instanceof HTMLButtonElement) && 
+        !(event.target instanceof HTMLInputElement)) {
+      onToggleSelect(candidate.id);
+    }
+  };
+
   return (
-    <Card className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
+    <Card 
+      className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

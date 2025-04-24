@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Electorate, Candidate } from "../types";
@@ -24,15 +23,18 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
   const handleToggleCandidate = useCallback((candidateId: string) => {
-    console.log('CandidatesStep: Selection event received', {
+    console.log('CandidatesStep: Processing selection', {
       candidateId,
       currentlySelected: selectedCandidates,
-      willBeSelected: !selectedCandidates.includes(candidateId)
+      willBeSelected: !selectedCandidates.includes(candidateId),
+      totalSelected: selectedCandidates.length
     });
     
-    // Ensure we pass the ID directly to the parent handler
-    onSelectCandidate(candidateId);
-  }, [onSelectCandidate]);
+    // Use setTimeout to break potential race conditions
+    setTimeout(() => {
+      onSelectCandidate(candidateId);
+    }, 0);
+  }, [selectedCandidates, onSelectCandidate]);
 
   return (
     <div className="w-full max-w-3xl mx-auto">

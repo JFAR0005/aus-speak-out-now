@@ -24,24 +24,33 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 }) => {
   const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
     if (typeof checked === 'boolean') {
-      console.log(`CandidateCard: Checkbox change event for ${candidate.name}`, {
-        checked,
-        currentId: candidate.id,
-        currentState: isSelected
+      console.log(`CandidateCard: Selection event for ${candidate.name}`, {
+        candidateId: candidate.id,
+        chamber: candidate.chamber,
+        currentState: isSelected,
+        newState: checked
       });
       
-      // Stop any potential event bubbling
+      // Explicitly stop event propagation
+      event?.stopPropagation();
       onToggleSelect(candidate.id);
     }
-  }, [candidate.id, candidate.name, onToggleSelect, isSelected]);
+  }, [candidate.id, candidate.name, candidate.chamber, isSelected, onToggleSelect]);
 
   return (
-    <Card className="relative border transition-all pointer-events-none">
-      <div className={`absolute inset-0 transition-opacity ${isSelected ? "border-2 border-aus-green ring-1 ring-aus-green" : "border-transparent"}`} />
+    <Card className="relative border transition-all">
+      <div 
+        className={`absolute inset-0 transition-opacity pointer-events-none ${
+          isSelected ? "border-2 border-aus-green ring-1 ring-aus-green" : "border-transparent"
+        }`} 
+      />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative pointer-events-auto z-10">
+            <div 
+              className="relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}

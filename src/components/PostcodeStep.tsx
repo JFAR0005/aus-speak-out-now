@@ -55,7 +55,7 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
     <div className="w-full max-w-lg mx-auto">
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800">Find Your Representatives</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Find Your Candidates</h2>
           <p className="text-gray-600 mt-2">
             {getPromptText()}
           </p>

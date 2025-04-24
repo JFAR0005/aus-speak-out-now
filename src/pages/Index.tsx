@@ -68,9 +68,12 @@ const Index = () => {
   // Candidate selection handler
   const handleToggleCandidate = (candidateId: string) => {
     setSelectedCandidates((prev) => {
+      // Check if the candidate is already selected
       if (prev.includes(candidateId)) {
+        // If selected, remove it from the array
         return prev.filter((id) => id !== candidateId);
       } else {
+        // If not selected, add it to the array
         return [...prev, candidateId];
       }
     });

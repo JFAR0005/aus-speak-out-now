@@ -23,8 +23,8 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Handle checkbox change
-  const handleToggleSelect = () => {
+  // Handle checkbox change - create a handler that works with the Checkbox component
+  const handleCheckboxChange = () => {
     onToggleSelect(candidate.id);
   };
 
@@ -33,7 +33,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
     // Prevent the event from bubbling up to parent elements
     event.stopPropagation();
     
-    // Only trigger if not clicking on a button, checkbox or its label
+    // Only trigger if not clicking on a button, checkbox, or its label
     if (!(event.target instanceof HTMLButtonElement) && 
         !(event.target instanceof HTMLInputElement) &&
         !(event.target instanceof HTMLLabelElement)) {
@@ -52,7 +52,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
             <Checkbox
               id={`select-${candidate.id}`}
               checked={isSelected}
-              onCheckedChange={handleToggleSelect}
+              onCheckedChange={handleCheckboxChange}
               className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
             />
             <div className="flex flex-col">

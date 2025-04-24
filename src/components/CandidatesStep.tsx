@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Electorate, Candidate } from "../types";
@@ -26,8 +25,12 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
 
   // Handler to toggle candidate selection - ensure we only toggle the specified candidate
   const handleToggleCandidate = (candidateId: string) => {
+    // Directly call the parent handler with the specific candidate ID
     onSelectCandidate(candidateId);
   };
+
+  // Console log for debugging
+  console.log('Selected candidates:', selectedCandidates);
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -63,14 +66,18 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
           <div>
             <h3 className="text-xl font-semibold mb-3">Senate</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {senateCandidates.map((candidate) => (
-                <CandidateCard
-                  key={candidate.id}
-                  candidate={candidate}
-                  isSelected={selectedCandidates.includes(candidate.id)}
-                  onToggleSelect={handleToggleCandidate}
-                />
-              ))}
+              {senateCandidates.map((candidate) => {
+                // Log each candidate and whether they are selected
+                console.log(`Senate candidate ${candidate.name} (${candidate.id}): selected=${selectedCandidates.includes(candidate.id)}`);
+                return (
+                  <CandidateCard
+                    key={candidate.id}
+                    candidate={candidate}
+                    isSelected={selectedCandidates.includes(candidate.id)}
+                    onToggleSelect={handleToggleCandidate}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

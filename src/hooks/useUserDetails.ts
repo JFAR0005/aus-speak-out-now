@@ -10,6 +10,15 @@ interface UserDetails {
 
 export const useUserDetails = () => {
   const [userDetails, setUserDetails] = useState<UserDetails>(() => {
+    if (typeof window === 'undefined') {
+      return {
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: ''
+      };
+    }
+    
     const saved = sessionStorage.getItem('userLetterDetails');
     return saved ? JSON.parse(saved) : {
       firstName: '',
@@ -20,7 +29,9 @@ export const useUserDetails = () => {
   });
 
   useEffect(() => {
-    sessionStorage.setItem('userLetterDetails', JSON.stringify(userDetails));
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('userLetterDetails', JSON.stringify(userDetails));
+    }
   }, [userDetails]);
 
   return { userDetails, setUserDetails };

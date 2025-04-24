@@ -25,8 +25,8 @@ const Header: React.FC = () => {
     localStorage.clear();
     sessionStorage.clear();
     
-    // Navigate to home
-    navigate("/");
+    // Navigate to home and refresh the page to ensure a complete reset
+    window.location.href = "/";
     
     // Show confirmation toast
     toast({

@@ -23,6 +23,12 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
+  const handleToggleSelect = (event: React.MouseEvent | React.ChangeEvent) => {
+    // Stop propagation to prevent double selection
+    event.stopPropagation();
+    onToggleSelect(candidate.id);
+  };
+
   return (
     <Card className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
       <CardHeader className="pb-2">
@@ -31,7 +37,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
             <Checkbox
               id={`select-${candidate.id}`}
               checked={isSelected}
-              onCheckedChange={() => onToggleSelect(candidate.id)}
+              onCheckedChange={handleToggleSelect}
               className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
             />
             <div className="flex flex-col">
@@ -119,7 +125,10 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           variant="outline" 
           size="sm" 
           className="text-xs w-full"
-          onClick={() => window.open(`mailto:${candidate.email}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(`mailto:${candidate.email}`);
+          }}
         >
           <Mail className="mr-1 h-3 w-3" />
           {candidate.email}

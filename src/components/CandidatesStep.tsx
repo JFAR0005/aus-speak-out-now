@@ -24,6 +24,11 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
+  // Handler to toggle candidate selection
+  const handleToggleCandidate = (candidateId: string) => {
+    onSelectCandidate(candidateId);
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       <div className="space-y-6">
@@ -47,7 +52,7 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
                   key={candidate.id}
                   candidate={candidate}
                   isSelected={selectedCandidates.includes(candidate.id)}
-                  onToggleSelect={onSelectCandidate}
+                  onToggleSelect={handleToggleCandidate}
                 />
               ))}
             </div>
@@ -63,7 +68,7 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
                   key={candidate.id}
                   candidate={candidate}
                   isSelected={selectedCandidates.includes(candidate.id)}
-                  onToggleSelect={onSelectCandidate}
+                  onToggleSelect={handleToggleCandidate}
                 />
               ))}
             </div>

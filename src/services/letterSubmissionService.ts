@@ -25,17 +25,17 @@ export const saveLetterSubmission = async (
       concern: submissionData.concern,
     };
     
-    // Only add fields that have actual content
-    if (submissionData.senderName && submissionData.senderName.trim()) {
-      submissionRecord.sender_name = submissionData.senderName;
+    // Only add fields that have actual content - use trim to check for whitespace-only values
+    if (submissionData.senderName && submissionData.senderName.trim() !== "") {
+      submissionRecord.sender_name = submissionData.senderName.trim();
     }
     
-    if (submissionData.senderEmail && submissionData.senderEmail.trim()) {
-      submissionRecord.sender_email = submissionData.senderEmail;
+    if (submissionData.senderEmail && submissionData.senderEmail.trim() !== "") {
+      submissionRecord.sender_email = submissionData.senderEmail.trim();
     }
     
-    if (submissionData.senderPhone && submissionData.senderPhone.trim()) {
-      submissionRecord.sender_phone = submissionData.senderPhone;
+    if (submissionData.senderPhone && submissionData.senderPhone.trim() !== "") {
+      submissionRecord.sender_phone = submissionData.senderPhone.trim();
     }
     
     if (submissionData.stance) {
@@ -46,19 +46,19 @@ export const saveLetterSubmission = async (
       submissionRecord.tone = submissionData.tone;
     }
     
-    if (submissionData.personalExperience && submissionData.personalExperience.trim()) {
-      submissionRecord.personal_experience = submissionData.personalExperience;
+    if (submissionData.personalExperience && submissionData.personalExperience.trim() !== "") {
+      submissionRecord.personal_experience = submissionData.personalExperience.trim();
     }
     
-    if (submissionData.policyIdeas && submissionData.policyIdeas.trim()) {
-      submissionRecord.policy_ideas = submissionData.policyIdeas;
+    if (submissionData.policyIdeas && submissionData.policyIdeas.trim() !== "") {
+      submissionRecord.policy_ideas = submissionData.policyIdeas.trim();
     }
     
-    if (submissionData.uploadedContent) {
+    if (submissionData.uploadedContent && typeof submissionData.uploadedContent === 'string') {
       submissionRecord.uploaded_content = submissionData.uploadedContent;
     }
     
-    if (submissionData.documentInsights) {
+    if (submissionData.documentInsights && typeof submissionData.documentInsights === 'string') {
       submissionRecord.document_insights = submissionData.documentInsights;
     }
 

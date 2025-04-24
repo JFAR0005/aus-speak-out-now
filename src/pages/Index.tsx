@@ -164,6 +164,7 @@ const Index = () => {
               onGenerateMultipleLetters={handleGenerateMultipleLetters}
               onPrevious={handleBackToStep3}
               onContinue={handleContinueToStep5}
+              onSelectCandidate={handleToggleCandidate}
             />
           )}
 

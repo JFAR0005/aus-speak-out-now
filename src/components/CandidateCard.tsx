@@ -1,3 +1,4 @@
+
 import React, { useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Candidate } from "../types";
@@ -70,6 +71,10 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
                       ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
                       : candidate.party === "Australian Greens"
                       ? "bg-green-100 text-green-800 hover:bg-green-100"
+                      : candidate.party === "The Nationals"
+                      ? "bg-darkgreen-100 text-darkgreen-800 hover:bg-darkgreen-100"
+                      : candidate.party === "Country Liberal Party"
+                      ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
                       : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                   }`}
                 >

@@ -87,21 +87,39 @@ export type Database = {
       postcode_mappings: {
         Row: {
           electorate: string
-          lgacode: string | null
           locality: string | null
           postcode: number
           state: string
         }
         Insert: {
           electorate: string
-          lgacode?: string | null
           locality?: string | null
           postcode: number
           state: string
         }
         Update: {
           electorate?: string
-          lgacode?: string | null
+          locality?: string | null
+          postcode?: number
+          state?: string
+        }
+        Relationships: []
+      }
+      postcode_mappings_duplicate: {
+        Row: {
+          electorate: string
+          locality: string | null
+          postcode: number
+          state: string
+        }
+        Insert: {
+          electorate: string
+          locality?: string | null
+          postcode: number
+          state: string
+        }
+        Update: {
+          electorate?: string
           locality?: string | null
           postcode?: number
           state?: string

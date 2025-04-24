@@ -16,4 +16,3 @@ export const fetchPostcodeMappings = async (postcode: number): Promise<{
     error: result.error
   };
 };
-

@@ -9,6 +9,7 @@ import CandidatesStep from "../components/CandidatesStep";
 import MessageStep from "../components/MessageStep";
 import ReviewStep from "../components/ReviewStep";
 import { Electorate, ChamberType } from "../types";
+import { StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 
 const steps = [
   "Select Chamber",

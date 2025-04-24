@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,10 +9,11 @@ import {
   Upload, 
   Sparkles,
   FileText,
-  AlertCircle
+  AlertCircle,
+  MessageCircle
 } from "lucide-react";
 import { Electorate, Candidate } from "../types";
-import { generateLetters } from "../services/letterService";
+import { generateLetters, LetterGenerationOptions } from "../services/letterService";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/alert";
 import UserDetailsForm from "./UserDetailsForm";
 import { useUserDetails } from "../hooks/useUserDetails";
+import { StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 
 interface MessageStepProps {
   electorate: Electorate;
@@ -51,7 +54,10 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
-  const [letterTone, setLetterTone] = useState("formal");
+  const [letterTone, setLetterTone] = useState<ToneType>("formal");
+  const [stance, setStance] = useState<StanceType>("concerned");
+  const [personalExperience, setPersonalExperience] = useState("");
+  const [policyIdeas, setPolicyIdeas] = useState("");
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -184,13 +190,17 @@ const MessageStep: React.FC<MessageStepProps> = ({
       });
       
       try {
-        const letters = await generateLetters(
-          selectedCandidatesList,
-          userConcern,
-          fileContent,
-          letterTone,
+        const options: LetterGenerationOptions = {
+          concern: userConcern,
+          uploadedContent: fileContent,
+          tone: letterTone,
+          stance,
+          personalExperience,
+          policyIdeas,
           userDetails
-        );
+        };
+        
+        const letters = await generateLetters(selectedCandidatesList, options);
         
         if (Object.keys(letters).length === 0) {
           throw new Error("Failed to generate letters");
@@ -202,6 +212,14 @@ const MessageStep: React.FC<MessageStepProps> = ({
         if (onGenerateMultipleLetters) {
           onGenerateMultipleLetters(letters);
         }
+        
+        // Store options for potential regeneration
+        sessionStorage.setItem('letterGenerationOptions', JSON.stringify({
+          tone: letterTone,
+          stance,
+          personalExperience,
+          policyIdeas,
+        }));
         
         onContinue();
       } catch (error) {
@@ -278,26 +296,83 @@ const MessageStep: React.FC<MessageStepProps> = ({
               </p>
             </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-2 font-medium">
+                  Your stance on this issue
+                </label>
+                <Select 
+                  value={stance} 
+                  onValueChange={(value: StanceType) => setStance(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your stance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="oppose">Oppose</SelectItem>
+                    <SelectItem value="neutral">Neutral</SelectItem>
+                    <SelectItem value="concerned">Concerned</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  This helps tailor your letter's tone and arguments
+                </p>
+              </div>
+              
+              <div>
+                <label className="block mb-2 font-medium">
+                  Letter tone
+                </label>
+                <Select 
+                  value={letterTone} 
+                  onValueChange={(value: ToneType) => setLetterTone(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="formal">Formal</SelectItem>
+                    <SelectItem value="passionate">Passionate</SelectItem>
+                    <SelectItem value="direct">Direct</SelectItem>
+                    <SelectItem value="hopeful">Hopeful</SelectItem>
+                    <SelectItem value="empathetic">Empathetic</SelectItem>
+                    <SelectItem value="optimistic">Optimistic</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose the tone for your letters - each will be uniquely written
+                </p>
+              </div>
+            </div>
+            
             <div>
               <label className="block mb-2 font-medium">
-                Letter tone
+                Personal experience or context (optional)
               </label>
-              <Select 
-                value={letterTone} 
-                onValueChange={setLetterTone}
-              >
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Select tone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="formal">Formal</SelectItem>
-                  <SelectItem value="passionate">Passionate</SelectItem>
-                  <SelectItem value="direct">Direct</SelectItem>
-                  <SelectItem value="hopeful">Hopeful</SelectItem>
-                </SelectContent>
-              </Select>
+              <Textarea
+                placeholder="Share a personal story or experience related to this issue..."
+                value={personalExperience}
+                onChange={(e) => setPersonalExperience(e.target.value)}
+                className="min-h-[80px]"
+              />
               <p className="text-xs text-gray-500 mt-1">
-                Choose the tone for your letters - each will be uniquely written
+                Adding personal context makes your letter more impactful
+              </p>
+            </div>
+            
+            <div>
+              <label className="block mb-2 font-medium">
+                Policy suggestions (optional)
+              </label>
+              <Textarea
+                placeholder="Suggest specific policy ideas you'd like the candidate to consider..."
+                value={policyIdeas}
+                onChange={(e) => setPolicyIdeas(e.target.value)}
+                className="min-h-[80px]"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Include specific policy ideas you'd like the candidate to consider
               </p>
             </div>
 
@@ -353,16 +428,15 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Supported formats: PDF, DOC, DOCX, TXT (max 5MB)
+                Supported formats: PDF, DOC, DOCX, TXT (max 5MB). Attach documents to include stats or key points.
               </p>
               
               <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
                 <div className="flex gap-2 items-start">
                   <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
                   <p className="text-xs text-amber-700">
-                    Note: We will attempt to include relevant statistics or information from any file you upload, 
-                    but we do not guarantee accuracy or completeness. Please review and fact-check the generated 
-                    letter carefully before sending.
+                    We'll include information based on your upload, but please fact-check for accuracy before sending.
+                    Any statistics or key points extracted will be incorporated into your letter where relevant.
                   </p>
                 </div>
               </div>

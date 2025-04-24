@@ -1,16 +1,39 @@
 
 import { Candidate } from "../types";
-import { generateLetterForCandidate } from "../utils/letterUtils/letterGenerator";
+import { generateLetterForCandidate, generateLetterWithLegacyParams, StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 import { extractDocumentInsights } from "../utils/letterUtils/documentProcessor";
 import { qualityCheck } from "../utils/letterUtils/textCleaner";
 
+export interface LetterGenerationOptions {
+  concern: string;
+  uploadedContent?: string | null;
+  tone?: ToneType;
+  stance?: StanceType;
+  personalExperience?: string;
+  policyIdeas?: string;
+  userDetails?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+}
+
 export const generateLetters = async (
   candidates: Candidate[],
-  concern: string,
-  uploadedContent: string | null = null,
-  tone: string = 'formal',
-  userDetails?: { firstName: string; lastName: string; phone: string; email: string }
+  options: LetterGenerationOptions
 ): Promise<Record<string, string>> => {
+  const {
+    concern,
+    uploadedContent = null,
+    tone = 'formal',
+    stance = 'concerned',
+    personalExperience = '',
+    policyIdeas = '',
+    userDetails
+  } = options;
+  
+  let processedConcern = concern;
   let documentInsights = '';
   
   // If we're getting a placeholder like "your previous concern", use a meaningful default
@@ -19,15 +42,15 @@ export const generateLetters = async (
     // Check if we have a stored concern in sessionStorage
     const storedConcern = sessionStorage.getItem('userLetterConcern');
     if (storedConcern) {
-      concern = storedConcern;
-      console.log("Retrieved stored concern:", concern);
+      processedConcern = storedConcern;
+      console.log("Retrieved stored concern:", processedConcern);
     } else {
-      concern = "important policy matters affecting our community";
+      processedConcern = "important policy matters affecting our community";
     }
   } else {
     // Store valid concerns for future regenerations
-    sessionStorage.setItem('userLetterConcern', concern);
-    console.log("Stored user concern:", concern);
+    sessionStorage.setItem('userLetterConcern', processedConcern);
+    console.log("Stored user concern:", processedConcern);
   }
   
   try {
@@ -35,7 +58,7 @@ export const generateLetters = async (
     if (uploadedContent) {
       try {
         // Process document insights without referencing the file directly
-        documentInsights = extractDocumentInsights(uploadedContent, concern);
+        documentInsights = extractDocumentInsights(uploadedContent, processedConcern);
         console.log("Document insights extracted:", documentInsights ? "Yes" : "No");
       } catch (error) {
         console.error("Error processing document:", error);
@@ -56,12 +79,18 @@ export const generateLetters = async (
             
             for (const candidate of batch) {
               try {
+                // Use the new letter generator with full options
                 let generatedLetter = generateLetterForCandidate(
                   candidate,
-                  concern,
-                  documentInsights,
-                  tone,
-                  userDetails
+                  {
+                    concern: processedConcern,
+                    documentInsights: documentInsights || undefined,
+                    stance,
+                    personalExperience,
+                    policyIdeas,
+                    tone,
+                    userDetails
+                  }
                 );
                 
                 // Apply quality check and Australian English fixes
@@ -70,7 +99,21 @@ export const generateLetters = async (
                 letters[candidate.id] = generatedLetter;
               } catch (err) {
                 console.error(`Error generating letter for ${candidate.name}:`, err);
-                letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
+                
+                // Fallback to legacy method if needed
+                try {
+                  const fallbackLetter = generateLetterWithLegacyParams(
+                    candidate,
+                    processedConcern,
+                    documentInsights,
+                    tone,
+                    userDetails
+                  );
+                  letters[candidate.id] = fallbackLetter;
+                } catch (fallbackErr) {
+                  console.error(`Fallback also failed for ${candidate.name}:`, fallbackErr);
+                  letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;
+                }
               }
             }
           }
@@ -93,8 +136,8 @@ export const generateLetter = async (
   candidates: Candidate[],
   concern: string,
   uploadedContent: string | null = null,
-  tone: string = 'formal'
+  tone: ToneType = 'formal'
 ): Promise<string> => {
-  const letters = await generateLetters(candidates, concern, uploadedContent, tone);
+  const letters = await generateLetters(candidates, { concern, uploadedContent, tone });
   return Object.values(letters).join('\n\n---\n\n');
 };

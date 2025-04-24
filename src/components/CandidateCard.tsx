@@ -23,41 +23,17 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Handle checkbox change - the checkbox directly calls the parent handler
+  // Handle checkbox change - only trigger selection when checkbox is directly clicked
   const handleCheckboxChange = (checked: boolean | "indeterminate") => {
     if (checked === true || checked === false) {
-      onToggleSelect(candidate.id);
-    }
-  };
-
-  // For handling click on the card - only select when the card itself is clicked
-  const handleCardClick = (event: React.MouseEvent) => {
-    // Get the actual target element that received the click
-    const target = event.target as HTMLElement;
-    
-    // Check if we clicked on interactive elements that should handle their own clicks
-    const isInteractive = 
-      target.tagName === 'BUTTON' || 
-      target.tagName === 'INPUT' || 
-      target.tagName === 'LABEL' ||
-      // Check parent elements to see if we clicked inside a button or other interactive element
-      target.closest('button') !== null ||
-      target.closest('input') !== null ||
-      target.closest('label') !== null;
-    
-    // Only proceed with selection if not clicking an interactive element
-    if (!isInteractive) {
-      event.preventDefault();
-      event.stopPropagation();
+      console.log(`Checkbox clicked for ${candidate.name}`);
       onToggleSelect(candidate.id);
     }
   };
 
   return (
-    <Card 
-      className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
-    >
-      <CardHeader className="pb-2" onClick={handleCardClick}>
+    <Card className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div onClick={(e) => e.stopPropagation()}>
@@ -113,7 +89,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pb-2" onClick={handleCardClick}>
+      <CardContent className="pb-2">
         {candidate.chamber === "house" && candidate.division && (
           <div className="text-sm mb-2">
             <span className="font-medium">Electorate:</span> {candidate.division}

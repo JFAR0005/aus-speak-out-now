@@ -1,4 +1,3 @@
-
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
@@ -86,16 +85,16 @@ export const generateLetterForCandidate = (
   // Generate appropriate closing based on tone
   switch (tone) {
     case 'formal':
-      closingParagraph = "I would appreciate hearing your detailed position on these matters and any policies you intend to pursue if elected.";
+      closingParagraph = "I would appreciate if you could outline: your detailed position on these matters, what specific policies you intend to implement if elected, and your proposed timeline for implementing these changes. A clear understanding of your policy agenda and implementation strategy would greatly inform my voting decision.";
       break;
     case 'passionate':
-      closingParagraph = "I urge you to take strong action on this critical issue that affects so many Australians, including those in our local community.";
+      closingParagraph = "I urge you to take strong action on this critical issue that affects so many Australians. Please detail your position, the concrete policies you plan to implement if elected, and your timeline for delivering these changes. Our community needs to understand your concrete plans for action.";
       break;
     case 'direct':
-      closingParagraph = "Please outline your specific plans to address these concerns and how you will represent our community's interests on this issue if elected.";
+      closingParagraph = "Please provide specific information about: 1) Your position on this issue, 2) The exact policies you will implement if elected, and 3) Your timeline for implementing these changes. Our electorate deserves clear commitments with concrete deadlines.";
       break;
     case 'hopeful':
-      closingParagraph = "I believe that with the right leadership, we can make meaningful progress on this issue. I look forward to hearing how you plan to contribute to positive change.";
+      closingParagraph = "I believe that with the right leadership, we can make meaningful progress on this issue. Could you please share your position on this matter, outline the specific policies you plan to implement if elected, and provide a timeline for these changes? Understanding your detailed plan would help me make an informed decision.";
       break;
   }
   

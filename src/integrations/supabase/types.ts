@@ -39,6 +39,51 @@ export type Database = {
         }
         Relationships: []
       }
+      letter_submissions: {
+        Row: {
+          concern: string
+          created_at: string | null
+          document_insights: string | null
+          id: string
+          personal_experience: string | null
+          policy_ideas: string | null
+          sender_email: string | null
+          sender_name: string | null
+          sender_phone: string | null
+          stance: string | null
+          tone: string | null
+          uploaded_content: string | null
+        }
+        Insert: {
+          concern: string
+          created_at?: string | null
+          document_insights?: string | null
+          id?: string
+          personal_experience?: string | null
+          policy_ideas?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          stance?: string | null
+          tone?: string | null
+          uploaded_content?: string | null
+        }
+        Update: {
+          concern?: string
+          created_at?: string | null
+          document_insights?: string | null
+          id?: string
+          personal_experience?: string | null
+          policy_ideas?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          stance?: string | null
+          tone?: string | null
+          uploaded_content?: string | null
+        }
+        Relationships: []
+      }
       postcode_mappings: {
         Row: {
           electorate: string
@@ -95,6 +140,50 @@ export type Database = {
           surname?: string | null
         }
         Relationships: []
+      }
+      sent_letters: {
+        Row: {
+          candidate_chamber: string | null
+          candidate_email: string
+          candidate_id: string
+          candidate_name: string
+          candidate_party: string | null
+          id: string
+          letter_content: string
+          sent_at: string | null
+          submission_id: string | null
+        }
+        Insert: {
+          candidate_chamber?: string | null
+          candidate_email: string
+          candidate_id: string
+          candidate_name: string
+          candidate_party?: string | null
+          id?: string
+          letter_content: string
+          sent_at?: string | null
+          submission_id?: string | null
+        }
+        Update: {
+          candidate_chamber?: string | null
+          candidate_email?: string
+          candidate_id?: string
+          candidate_name?: string
+          candidate_party?: string | null
+          id?: string
+          letter_content?: string
+          sent_at?: string | null
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_letters_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "letter_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

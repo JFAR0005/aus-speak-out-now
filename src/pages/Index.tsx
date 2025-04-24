@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -12,7 +13,7 @@ import { StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 
 const steps = [
   "Select Chamber",
-  "Find Representatives",
+  "Find Electorate",
   "Select Candidates",
   "Draft Message",
   "Review & Send",

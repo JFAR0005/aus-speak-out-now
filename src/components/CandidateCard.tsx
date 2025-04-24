@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Candidate } from "../types";
 import { Badge } from "@/components/ui/badge";
@@ -22,24 +22,19 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  const handleCheckboxChange = (checked: boolean | "indeterminate") => {
+  const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
     if (typeof checked === 'boolean') {
-      console.log(`CandidateCard: Checkbox clicked for ${candidate.name} (${candidate.id}). New state:`, checked);
+      console.log(`CandidateCard: Direct checkbox interaction for ${candidate.name}. New state:`, checked);
       onToggleSelect(candidate.id);
     }
-  };
+  }, [candidate.id, candidate.name, onToggleSelect]);
 
   return (
-    <Card className={`transition-all pointer-events-none ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
+    <Card className={`relative transition-all pointer-events-none ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div 
-              className="pointer-events-auto relative z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
+            <div className="pointer-events-auto">
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}
@@ -133,6 +128,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           size="sm" 
           className="text-xs w-full pointer-events-auto"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             window.open(`mailto:${candidate.email}`);
           }}

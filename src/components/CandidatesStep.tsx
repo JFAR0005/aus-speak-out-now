@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Electorate, Candidate } from "../types";
 import CandidateCard from "./CandidateCard";
@@ -22,13 +22,11 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
-  const handleToggleCandidate = (candidateId: string) => {
-    console.log(`CandidatesStep: Toggling candidate ${candidateId}`);
-    console.log('CandidatesStep: Current selected before toggle:', selectedCandidates);
+  const handleToggleCandidate = useCallback((candidateId: string) => {
+    console.log('CandidatesStep: Processing selection toggle for:', candidateId);
+    console.log('CandidatesStep: Current selected candidates:', selectedCandidates);
     onSelectCandidate(candidateId);
-  };
-
-  console.log('CandidatesStep: All currently selected candidates:', selectedCandidates);
+  }, [onSelectCandidate, selectedCandidates]);
 
   return (
     <div className="w-full max-w-3xl mx-auto">

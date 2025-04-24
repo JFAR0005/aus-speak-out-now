@@ -35,16 +35,12 @@ const PostcodeStep: React.FC<PostcodeStepProps> = ({
   } = usePostcodeSearch(chamberType, postcode, onContinue);
 
   const getPlaceholderText = () => {
-    if (chamberType === "senate") {
-      return "Enter your postcode or state";
-    } else {
-      return "Enter your postcode";
-    }
+    return "Enter your postcode";
   };
 
   const getPromptText = () => {
     if (chamberType === "senate") {
-      return "Enter your postcode or state to find Senate candidates";
+      return "Enter your postcode to find Senate candidates in your state";
     } else {
       return "Enter your postcode to find House of Representatives candidates for your electorate";
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -291,6 +290,16 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 onChange={(e) => setUserConcern(e.target.value)}
                 className="min-h-[120px]"
               />
+              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
+                <p className="font-medium mb-1">Example of a high-quality concern:</p>
+                <p>
+                  "I'm deeply concerned about the impact of climate change on our agricultural sector. 
+                  Recent CSIRO reports indicate that changing rainfall patterns and increasing temperatures 
+                  are already affecting crop yields in my region. As a resident of a farming community, 
+                  I'm particularly interested in policies that support sustainable farming practices and 
+                  help farmers adapt to these challenges."
+                </p>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Be specific about your concern. The AI will use your words to craft a personalized message.
               </p>
@@ -356,6 +365,15 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 onChange={(e) => setPersonalExperience(e.target.value)}
                 className="min-h-[80px]"
               />
+              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
+                <p className="font-medium mb-1">Example of impactful personal context:</p>
+                <p>
+                  "As a small business owner in the renewable energy sector, I've witnessed firsthand how 
+                  policy uncertainty affects investment decisions. Last year, we had to postpone hiring 
+                  three new employees because of unclear renewable energy targets. This directly impacts 
+                  local job creation and our ability to contribute to the clean energy transition."
+                </p>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Adding personal context makes your letter more impactful
               </p>
@@ -371,6 +389,15 @@ const MessageStep: React.FC<MessageStepProps> = ({
                 onChange={(e) => setPolicyIdeas(e.target.value)}
                 className="min-h-[80px]"
               />
+              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
+                <p className="font-medium mb-1">Example of well-structured policy suggestions:</p>
+                <p>
+                  "1. Implement a 5-year tax incentive for businesses investing in renewable energy infrastructure
+                  2. Create a national framework for standardizing building energy efficiency requirements
+                  3. Establish a dedicated fund for supporting research into drought-resistant crop varieties
+                  4. Develop clear guidelines for carbon credit trading to benefit agricultural communities"
+                </p>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Include specific policy ideas you'd like the candidate to consider
               </p>

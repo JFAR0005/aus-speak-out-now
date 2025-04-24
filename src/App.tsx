@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,8 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import PrivacyAndTerms from "./pages/PrivacyAndTerms";
 
-// Create the query client outside of the component
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -28,7 +27,7 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/privacy-terms" element={<PrivacyAndTerms />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

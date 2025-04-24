@@ -139,6 +139,18 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const handleSendEmail = async (candidateId?: string) => {
     try {
+      const savedDetails = sessionStorage.getItem('userLetterDetails');
+      const userDetails = savedDetails ? JSON.parse(savedDetails) : {};
+      
+      const filteredDetails: any = {};
+      if (userDetails) {
+        Object.entries(userDetails).forEach(([key, value]) => {
+          if (value && typeof value === 'string' && value.trim() !== '') {
+            filteredDetails[key] = value.trim();
+          }
+        });
+      }
+      
       const submissionData = {
         concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
         tone: sessionStorage.getItem('letterGenerationOptions') ? 
@@ -149,7 +161,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
         policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
           JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
-        ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
+        ...filteredDetails
       };
 
       let mailtoUrl = '';

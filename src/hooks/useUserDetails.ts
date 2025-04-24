@@ -31,7 +31,10 @@ export const useUserDetails = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        sessionStorage.setItem('userLetterDetails', JSON.stringify(userDetails));
+        // Only save if there's at least one non-empty field
+        if (Object.values(userDetails).some(val => val && val.trim() !== '')) {
+          sessionStorage.setItem('userLetterDetails', JSON.stringify(userDetails));
+        }
       } catch (error) {
         console.error('Failed to save user details to session storage:', error);
       }

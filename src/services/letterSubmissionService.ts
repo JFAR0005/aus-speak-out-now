@@ -54,11 +54,11 @@ export const saveLetterSubmission = async (
       submissionRecord.policy_ideas = submissionData.policyIdeas.trim();
     }
     
-    if (submissionData.uploadedContent && typeof submissionData.uploadedContent === 'string') {
+    if (submissionData.uploadedContent && typeof submissionData.uploadedContent === 'string' && submissionData.uploadedContent.trim() !== '') {
       submissionRecord.uploaded_content = submissionData.uploadedContent;
     }
     
-    if (submissionData.documentInsights && typeof submissionData.documentInsights === 'string') {
+    if (submissionData.documentInsights && typeof submissionData.documentInsights === 'string' && submissionData.documentInsights.trim() !== '') {
       submissionRecord.document_insights = submissionData.documentInsights;
     }
 

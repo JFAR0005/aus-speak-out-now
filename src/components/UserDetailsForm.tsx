@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -14,28 +14,50 @@ interface UserDetailsFormProps {
 
 const UserDetailsForm = ({ firstName, lastName, phone, email, onChange }: UserDetailsFormProps) => {
   const { toast } = useToast();
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
-  const handleEmailChange = (value: string) => {
-    // Only validate if there's actually content and it's invalid
-    if (value && value.trim() !== "" && !value.includes('@')) {
+  const validateEmail = (value: string) => {
+    // Only validate if field has been touched, has content, and is invalid
+    if (emailTouched && value && value.trim() !== "" && !value.includes('@')) {
       toast({
         variant: "destructive",
         title: "Invalid email",
         description: "Please enter a valid email address",
       });
+      return false;
     }
-    onChange("email", value);
+    return true;
   };
 
-  const handlePhoneChange = (value: string) => {
-    // Only validate if there's actually content and it's invalid
-    if (value && value.trim() !== "" && !/^[\d\s\-+()]*$/.test(value)) {
+  const validatePhone = (value: string) => {
+    // Only validate if field has been touched, has content, and is invalid
+    if (phoneTouched && value && value.trim() !== "" && !/^[\d\s\-+()]*$/.test(value)) {
       toast({
         variant: "destructive",
         title: "Invalid phone number",
         description: "Please enter a valid phone number",
       });
+      return false;
     }
+    return true;
+  };
+
+  const handleEmailChange = (value: string) => {
+    if (value.trim() !== "") {
+      setEmailTouched(true);
+    }
+    
+    validateEmail(value);
+    onChange("email", value);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    if (value.trim() !== "") {
+      setPhoneTouched(true);
+    }
+    
+    validatePhone(value);
     onChange("phone", value);
   };
 
@@ -77,7 +99,7 @@ const UserDetailsForm = ({ firstName, lastName, phone, email, onChange }: UserDe
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
-            type="email"
+            type="text"
             value={email}
             onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="Enter your email address"

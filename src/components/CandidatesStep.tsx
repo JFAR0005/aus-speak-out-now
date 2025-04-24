@@ -45,6 +45,14 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
     });
   };
 
+  const handleDeselectAllHouse = () => {
+    houseRepresentatives.forEach(candidate => {
+      if (selectedCandidates.includes(candidate.id)) {
+        onSelectCandidate(candidate.id);
+      }
+    });
+  };
+
   const handleSelectAllSenate = () => {
     senateCandidates.forEach(candidate => {
       if (!selectedCandidates.includes(candidate.id)) {
@@ -53,9 +61,17 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
     });
   };
 
+  const handleDeselectAllSenate = () => {
+    senateCandidates.forEach(candidate => {
+      if (selectedCandidates.includes(candidate.id)) {
+        onSelectCandidate(candidate.id);
+      }
+    });
+  };
+
   const areAllHouseSelected = houseRepresentatives.length > 0 && 
     houseRepresentatives.every(candidate => selectedCandidates.includes(candidate.id));
-  
+
   const areAllSenateSelected = senateCandidates.length > 0 && 
     senateCandidates.every(candidate => selectedCandidates.includes(candidate.id));
 
@@ -77,18 +93,20 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xl font-semibold">House of Representatives</h3>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="selectAllHouse"
-                  checked={areAllHouseSelected}
-                  onCheckedChange={() => handleSelectAllHouse()}
-                />
-                <label 
-                  htmlFor="selectAllHouse" 
-                  className="text-sm text-gray-700 cursor-pointer"
-                >
-                  Select All
-                </label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="selectAllHouse"
+                    checked={areAllHouseSelected}
+                    onCheckedChange={() => areAllHouseSelected ? handleDeselectAllHouse() : handleSelectAllHouse()}
+                  />
+                  <label 
+                    htmlFor="selectAllHouse" 
+                    className="text-sm text-gray-700 cursor-pointer"
+                  >
+                    {areAllHouseSelected ? "Deselect All" : "Select All"}
+                  </label>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -108,18 +126,20 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xl font-semibold">Senate</h3>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="selectAllSenate"
-                  checked={areAllSenateSelected}
-                  onCheckedChange={() => handleSelectAllSenate()}
-                />
-                <label 
-                  htmlFor="selectAllSenate" 
-                  className="text-sm text-gray-700 cursor-pointer"
-                >
-                  Select All
-                </label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="selectAllSenate"
+                    checked={areAllSenateSelected}
+                    onCheckedChange={() => areAllSenateSelected ? handleDeselectAllSenate() : handleSelectAllSenate()}
+                  />
+                  <label 
+                    htmlFor="selectAllSenate" 
+                    className="text-sm text-gray-700 cursor-pointer"
+                  >
+                    {areAllSenateSelected ? "Deselect All" : "Select All"}
+                  </label>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

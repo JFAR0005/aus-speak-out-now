@@ -2,6 +2,7 @@
 import { Candidate } from "../types";
 import { generateLetterForCandidate } from "../utils/letterUtils/letterGenerator";
 import { extractDocumentInsights } from "../utils/letterUtils/documentProcessor";
+import { qualityCheck } from "../utils/letterUtils/textCleaner";
 
 export const generateLetters = async (
   candidates: Candidate[],
@@ -55,13 +56,18 @@ export const generateLetters = async (
             
             for (const candidate of batch) {
               try {
-                letters[candidate.id] = generateLetterForCandidate(
+                let generatedLetter = generateLetterForCandidate(
                   candidate,
                   concern,
                   documentInsights,
                   tone,
                   userDetails
                 );
+                
+                // Apply quality check and Australian English fixes
+                generatedLetter = qualityCheck(generatedLetter);
+                
+                letters[candidate.id] = generatedLetter;
               } catch (err) {
                 console.error(`Error generating letter for ${candidate.name}:`, err);
                 letters[candidate.id] = `Error generating letter for ${candidate.name}. Please try again.`;

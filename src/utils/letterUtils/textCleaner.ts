@@ -90,8 +90,17 @@ export const cleanInputText = (text: string): string => {
 
 // New function to check grammar and phrasing quality
 export const qualityCheck = (text: string): string => {
-  // Remove redundant phrases
+  // Ensure proper spacing for signature with Australian formatting
   let improvedText = text
+    // Add proper spacing for sign-off
+    .replace(/\b(Regards|Sincerely|Yours sincerely|Thank you)\b,?\s*([A-Z][a-z]+(\s+[A-Z][a-z]+)*)/gi, 
+      (match, signoff, name) => {
+        // Ensure there's a paragraph break before signoff, then signoff on its own line, then name
+        return `\n\n${signoff},\n\n${name}`;
+      });
+  
+  // Remove redundant phrases
+  improvedText = improvedText
     .replace(/\b(issue|matter|concern)\b.*?\b\1\b/gi, '$1')
     .replace(/\b(important|significant|critical)\b.*?\b\1\b/gi, '$1')
     .replace(/I am writing to (you )?regarding/gi, 'I am writing regarding')

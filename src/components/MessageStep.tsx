@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, X } from "lucide-react";
 import { Electorate } from "../types";
 import { generateLetters, LetterGenerationOptions } from "../services/letterService";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ interface MessageStepProps {
   onGenerateMultipleLetters?: (letters: Record<string, string>) => void;
   onPrevious: () => void;
   onContinue: () => void;
+  onSelectCandidate: (id: string) => void;
 }
 
 const MessageStep: React.FC<MessageStepProps> = ({
@@ -32,6 +33,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
   onGenerateMultipleLetters,
   onPrevious,
   onContinue,
+  onSelectCandidate,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -44,6 +46,19 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [fileError, setFileError] = useState<string | null>(null);
   const { toast } = useToast();
   const { userDetails, updateUserDetail } = useUserDetails();
+
+  const handleRemoveCandidate = (candidateId: string) => {
+    const updatedCandidates = selectedCandidates.filter(id => id !== candidateId);
+    if (updatedCandidates.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Cannot remove all candidates",
+        description: "You must have at least one candidate selected.",
+      });
+      return;
+    }
+    onSelectCandidate(candidateId); // This will toggle/remove the candidate
+  };
 
   const selectedCandidatesList = electorate.candidates.filter(c => 
     selectedCandidates.includes(c.id)
@@ -220,18 +235,23 @@ const MessageStep: React.FC<MessageStepProps> = ({
         </div>
 
         <div className="bg-white rounded-lg shadow p-5 border border-gray-200">
-          <h3 className="font-medium text-lg mb-4">
-            Your selected candidates ({selectedCandidatesList.length}):
-          </h3>
+          <h3 className="font-medium text-lg mb-4">Selected candidates:</h3>
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedCandidatesList.map((candidate) => (
               <div 
                 key={candidate.id}
-                className="bg-gray-100 px-3 py-1 rounded-full text-sm flex items-center"
+                className="bg-gray-100 px-3 py-1 rounded-full text-sm flex items-center group"
               >
                 <span>{candidate.name}</span>
                 <span className="mx-1 text-gray-400">•</span>
                 <span className="text-gray-500 text-xs">{candidate.party}</span>
+                <button
+                  onClick={() => handleRemoveCandidate(candidate.id)}
+                  className="ml-2 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  aria-label={`Remove ${candidate.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
             ))}
           </div>

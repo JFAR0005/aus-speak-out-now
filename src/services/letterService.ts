@@ -7,7 +7,8 @@ export const generateLetters = async (
   candidates: Candidate[],
   concern: string,
   uploadedContent: string | null = null,
-  tone: string = 'formal'
+  tone: string = 'formal',
+  userDetails?: { firstName: string; lastName: string; phone: string; email: string }
 ): Promise<Record<string, string>> => {
   let documentInsights = '';
   
@@ -58,7 +59,8 @@ export const generateLetters = async (
                   candidate,
                   concern,
                   documentInsights,
-                  tone
+                  tone,
+                  userDetails
                 );
               } catch (err) {
                 console.error(`Error generating letter for ${candidate.name}:`, err);

@@ -24,6 +24,8 @@ import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
+import UserDetailsForm from "./UserDetailsForm";
+import { useUserDetails } from "../hooks/useUserDetails";
 
 interface MessageStepProps {
   electorate: Electorate;
@@ -55,6 +57,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [generationProgress, setGenerationProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { userDetails, setUserDetails } = useUserDetails();
 
   const selectedCandidatesList = electorate.candidates.filter(c => 
     selectedCandidates.includes(c.id)
@@ -68,14 +71,12 @@ const MessageStep: React.FC<MessageStepProps> = ({
     setFileError(null);
     setIsProcessingFile(true);
     
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setFileError("File too large. Maximum size is 5MB.");
       setIsProcessingFile(false);
       return;
     }
     
-    // Check file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
     if (!validTypes.includes(file.type)) {
       setFileError("Invalid file type. Please upload PDF, DOC, DOCX, or TXT files only.");
@@ -83,10 +84,8 @@ const MessageStep: React.FC<MessageStepProps> = ({
       return;
     }
     
-    // Read file content - improved with better error handling
     const reader = new FileReader();
     
-    // Set timeout for large file reading to prevent UI freeze
     const readTimeout = setTimeout(() => {
       if (isProcessingFile) {
         reader.abort();
@@ -99,13 +98,12 @@ const MessageStep: React.FC<MessageStepProps> = ({
           description: "File processing took too long. Please try a smaller or simpler file.",
         });
       }
-    }, 10000); // 10 second timeout
-    
+    }, 10000);
+
     reader.onload = (e) => {
       clearTimeout(readTimeout);
       try {
         const text = e.target?.result as string;
-        // Limit file content to prevent memory issues (first 20KB)
         const limitedText = text.substring(0, 20000);
         setFileContent(limitedText);
         setIsProcessingFile(false);
@@ -139,11 +137,9 @@ const MessageStep: React.FC<MessageStepProps> = ({
       });
     };
     
-    // Read as text for TXT files, or data URL for other types
     if (file.type === "text/plain") {
       reader.readAsText(file);
     } else {
-      // For PDFs, DOCs, etc. we'll just read as text and extract what we can
       reader.readAsText(file);
     }
   };
@@ -157,6 +153,13 @@ const MessageStep: React.FC<MessageStepProps> = ({
     }
   };
 
+  const handleUserDetailsChange = (field: string, value: string) => {
+    setUserDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleGenerateLetter = async () => {
     if (!userConcern.trim() && !uploadedFile) {
       toast({
@@ -167,7 +170,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
       return;
     }
 
-    // Store the user concern in session storage for potential regeneration later
     if (userConcern.trim()) {
       sessionStorage.setItem('userLetterConcern', userConcern.trim());
     }
@@ -176,36 +178,31 @@ const MessageStep: React.FC<MessageStepProps> = ({
     setGenerationProgress(0);
     
     try {
-      // Show progress toast for better UX
       const progressToast = toast({
         title: "Generating letters",
         description: "Creating personalized letters for each candidate...",
       });
       
-      // Generate separate letters for each candidate with improved error handling
       try {
         const letters = await generateLetters(
           selectedCandidatesList,
           userConcern,
           fileContent,
-          letterTone
+          letterTone,
+          userDetails
         );
         
-        // Handle empty result
         if (Object.keys(letters).length === 0) {
           throw new Error("Failed to generate letters");
         }
         
-        // For backward compatibility, also pass the combined letter
         const combinedLetter = Object.values(letters).join('\n\n---\n\n');
         onGenerateLetter(combinedLetter);
         
-        // If the multi-letter handler is available, use it
         if (onGenerateMultipleLetters) {
           onGenerateMultipleLetters(letters);
         }
         
-        // Continue to next step
         onContinue();
       } catch (error) {
         console.error("Error generating letter:", error);
@@ -258,6 +255,14 @@ const MessageStep: React.FC<MessageStepProps> = ({
           <Separator className="my-4" />
 
           <div className="space-y-4">
+            <UserDetailsForm
+              firstName={userDetails.firstName}
+              lastName={userDetails.lastName}
+              phone={userDetails.phone}
+              email={userDetails.email}
+              onChange={handleUserDetailsChange}
+            />
+
             <div>
               <label className="block mb-2 font-medium">
                 What issue or concern would you like to address?

@@ -1,4 +1,3 @@
-
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
@@ -6,15 +5,29 @@ import { cleanInputText, qualityCheck } from "./textCleaner";
 import { generateSubjectLine } from "./subjectGenerator";
 import { getRandomStatistic } from "./statisticsProvider";
 
+interface UserDetails {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+}
+
 export const generateLetterForCandidate = (
   candidate: Candidate,
   concern: string,
   documentInsights: string,
-  tone: string
+  tone: string,
+  userDetails?: UserDetails
 ): string => {
   const candidateTitle = generateTitle(candidate);
   const fullName = candidateTitle ? `${candidateTitle} ${candidate.name}` : candidate.name;
   const partyInfo = candidate.party ? ` for the ${candidate.party}` : '';
+  
+  // Format user details section
+  const formattedUserDetails = userDetails && (userDetails.firstName || userDetails.lastName) ? 
+    `${userDetails.firstName} ${userDetails.lastName}`.trim() : '[Your Name]';
+  const formattedUserPhone = userDetails?.phone || '[Your Phone]';
+  const formattedUserEmail = userDetails?.email || '[Your Email]';
   
   let roleDescription = '';
   if (candidate.chamber === "house") {
@@ -72,11 +85,10 @@ export const generateLetterForCandidate = (
       break;
   }
   
-  // Assemble the letter with proper spacing
-  let letterText = `[Your Name]
-[Your Address]
-[Your Email]
-[Your Phone]
+  // Assemble the letter with proper spacing and formatting
+  let letterText = `${formattedUserDetails}
+${formattedUserEmail}
+${formattedUserPhone}
 
 ${letterDate}
 
@@ -99,7 +111,7 @@ I look forward to your response.
 
 Yours sincerely,
 
-[YOUR NAME]`;
+${formattedUserDetails}`;
 
   return qualityCheck(letterText);
 };

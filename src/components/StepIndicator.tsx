@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Check } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -8,6 +9,8 @@ interface StepIndicatorProps {
 }
 
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="w-full py-4">
       <div className="flex justify-between relative">
@@ -31,7 +34,9 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
               className="flex flex-col items-center relative z-10"
             >
               <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
+                className={`flex items-center justify-center ${
+                  isMobile ? "w-8 h-8" : "w-10 h-10"
+                } rounded-full border-2 transition-all ${
                   isActive
                     ? "step-active"
                     : isCompleted
@@ -40,13 +45,17 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
                 }`}
               >
                 {isCompleted ? (
-                  <Check className="h-5 w-5" />
+                  <Check className={`${isMobile ? "h-4 w-4" : "h-5 w-5"}`} />
                 ) : (
-                  <span>{index + 1}</span>
+                  <span className={isMobile ? "text-sm" : ""}>{index + 1}</span>
                 )}
               </div>
               <span
-                className={`mt-2 text-xs text-center transition-colors ${
+                className={`mt-2 ${
+                  isMobile
+                    ? "text-[10px] max-w-[60px]"
+                    : "text-xs"
+                } text-center transition-colors ${
                   isActive || isCompleted
                     ? "text-aus-green font-medium"
                     : "text-gray-500"
@@ -63,3 +72,4 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
 };
 
 export default StepIndicator;
+

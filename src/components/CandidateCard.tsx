@@ -22,23 +22,24 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
-    if (typeof checked === 'boolean') {
-      console.log(`CandidateCard: Selection event for ${candidate.name}`, {
-        candidateId: candidate.id,
-        chamber: candidate.chamber,
-        currentState: isSelected,
-        newState: checked
-      });
-      
-      // Explicitly stop event propagation
-      event?.stopPropagation();
-      onToggleSelect(candidate.id);
-    }
-  }, [candidate.id, candidate.name, candidate.chamber, isSelected, onToggleSelect]);
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('CandidateCard: Click handler', {
+      candidateId: candidate.id,
+      chamber: candidate.chamber,
+      currentState: isSelected
+    });
+    
+    onToggleSelect(candidate.id);
+  }, [candidate.id, candidate.chamber, isSelected, onToggleSelect]);
 
   return (
-    <Card className="relative border transition-all">
+    <Card 
+      className="relative border transition-all"
+      onClick={handleClick}
+    >
       <div 
         className={`absolute inset-0 transition-opacity pointer-events-none ${
           isSelected ? "border-2 border-aus-green ring-1 ring-aus-green" : "border-transparent"
@@ -54,7 +55,17 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}
-                onCheckedChange={handleCheckboxChange}
+                onCheckedChange={(checked) => {
+                  if (typeof checked === 'boolean') {
+                    console.log('CandidateCard: Checkbox change', {
+                      candidateId: candidate.id,
+                      chamber: candidate.chamber,
+                      currentState: isSelected,
+                      newState: checked
+                    });
+                    onToggleSelect(candidate.id);
+                  }
+                }}
                 className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
               />
             </div>

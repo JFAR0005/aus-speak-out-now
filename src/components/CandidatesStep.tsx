@@ -27,13 +27,11 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
       candidateId,
       currentlySelected: selectedCandidates,
       willBeSelected: !selectedCandidates.includes(candidateId),
-      totalSelected: selectedCandidates.length
+      totalSelected: selectedCandidates.length,
+      selectedCandidatesState: [...selectedCandidates]
     });
     
-    // Use setTimeout to break potential race conditions
-    setTimeout(() => {
-      onSelectCandidate(candidateId);
-    }, 0);
+    onSelectCandidate(candidateId);
   }, [selectedCandidates, onSelectCandidate]);
 
   return (

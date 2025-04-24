@@ -39,7 +39,8 @@ export const saveLetterSubmission = async (
       .single();
 
     if (submissionError) {
-      throw submissionError;
+      console.error('Error saving submission:', submissionError);
+      return { success: false, error: submissionError };
     }
 
     // Then, insert records for each sent letter
@@ -58,11 +59,13 @@ export const saveLetterSubmission = async (
       .insert(sentLettersData);
 
     if (lettersError) {
-      throw lettersError;
+      console.error('Error saving sent letters:', lettersError);
+      return { success: false, error: lettersError };
     }
 
     return { success: true, submissionId: submission.id };
   } catch (error) {
+    // Log the error but don't prevent the email client from opening
     console.error('Error saving letter submission:', error);
     return { success: false, error };
   }

@@ -138,115 +138,106 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const handleSendEmail = async (candidateId?: string) => {
-    if (candidateId && candidateId !== "all") {
-      const candidate = selectedCandidatesList.find(c => c.id === candidateId);
-      if (candidate) {
-        const letterText = editableLetters[candidateId] || "";
-        const subjectMatch = letterText.match(/Re: (.*?)(?:\n|$)/);
-        const subject = subjectMatch ? subjectMatch[1] : "Constituent Outreach: Your Attention Required";
-        
-        const submissionData = {
-          concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
-          tone: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
-          stance: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
-          personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
-          policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
-          ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
-        };
+    try {
+      if (candidateId && candidateId !== "all") {
+        const candidate = selectedCandidatesList.find(c => c.id === candidateId);
+        if (candidate) {
+          const letterText = editableLetters[candidateId] || "";
+          const subjectMatch = letterText.match(/Re: (.*?)(?:\n|$)/);
+          const subject = subjectMatch ? subjectMatch[1] : "Constituent Outreach: Your Attention Required";
+          
+          const submissionData = {
+            concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
+            tone: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
+            stance: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
+            personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
+            policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
+            ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
+          };
 
-        const letters = {
-          [candidate.id]: {
-            content: letterText,
-            candidate: {
-              id: candidate.id,
-              name: candidate.name,
-              email: candidate.email,
-              party: candidate.party,
-              chamber: candidate.chamber
+          const letters = {
+            [candidate.id]: {
+              content: letterText,
+              candidate: {
+                id: candidate.id,
+                name: candidate.name,
+                email: candidate.email,
+                party: candidate.party,
+                chamber: candidate.chamber
+              }
             }
-          }
-        };
+          };
 
-        const { success, error } = await saveLetterSubmission(submissionData, letters);
-        
-        if (!success) {
-          console.error('Failed to save letter:', error);
+          await saveLetterSubmission(submissionData, letters);
+          
+          const body = encodeURIComponent(letterText);
+          window.location.href = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${body}`;
+          
           toast({
-            variant: "destructive",
-            title: "Error saving letter",
-            description: "There was an error saving your letter. The email client will still open.",
+            title: "Email client opened",
+            description: `Preparing to send email to ${candidate.name}.`,
           });
         }
+      } else {
+        let targetCandidates = candidateId === "all" ? selectedCandidatesList : 
+          [selectedCandidatesList.find(c => c.id === activeTab)].filter(Boolean);
         
-        const body = encodeURIComponent(letterText);
-        window.open(`mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${body}`);
-        
-        toast({
-          title: "Email client opened",
-          description: `Preparing to send email to ${candidate.name}.`,
-        });
-      }
-    } else {
-      let targetCandidates = candidateId === "all" ? selectedCandidatesList : 
-        [selectedCandidatesList.find(c => c.id === activeTab)].filter(Boolean);
-      
-      if (targetCandidates.length > 0) {
-        const emails = targetCandidates.map(c => c.email).join(";");
-        const subject = "Constituent Outreach: Your Attention Required";
-        
-        const submissionData = {
-          concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
-          tone: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
-          stance: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
-          personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
-          policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
-            JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
-          ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
-        };
+        if (targetCandidates.length > 0) {
+          const emails = targetCandidates.map(c => c.email).join(";");
+          const subject = "Constituent Outreach: Your Attention Required";
+          
+          const submissionData = {
+            concern: sessionStorage.getItem('userLetterConcern') || "important policy matters",
+            tone: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').tone : undefined,
+            stance: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').stance : undefined,
+            personalExperience: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').personalExperience : undefined,
+            policyIdeas: sessionStorage.getItem('letterGenerationOptions') ? 
+              JSON.parse(sessionStorage.getItem('letterGenerationOptions') || '{}').policyIdeas : undefined,
+            ...JSON.parse(sessionStorage.getItem('userLetterDetails') || '{}')
+          };
 
-        const letters = targetCandidates.reduce((acc, candidate) => ({
-          ...acc,
-          [candidate.id]: {
-            content: editableLetters[candidate.id] || generatedLetter,
-            candidate: {
-              id: candidate.id,
-              name: candidate.name,
-              email: candidate.email,
-              party: candidate.party,
-              chamber: candidate.chamber
+          const letters = targetCandidates.reduce((acc, candidate) => ({
+            ...acc,
+            [candidate.id]: {
+              content: editableLetters[candidate.id] || generatedLetter,
+              candidate: {
+                id: candidate.id,
+                name: candidate.name,
+                email: candidate.email,
+                party: candidate.party,
+                chamber: candidate.chamber
+              }
             }
-          }
-        }), {});
+          }), {});
 
-        const { success, error } = await saveLetterSubmission(submissionData, letters);
-        
-        if (!success) {
-          console.error('Failed to save letters:', error);
+          await saveLetterSubmission(submissionData, letters);
+          
+          const body = encodeURIComponent(targetCandidates.length === 1 ? 
+            editableLetters[targetCandidates[0].id] || generatedLetter : 
+            generatedLetter
+          );
+          window.location.href = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${body}`;
+          
           toast({
-            variant: "destructive",
-            title: "Error saving letters",
-            description: "There was an error saving your letters. The email client will still open.",
+            title: "Email client opened",
+            description: `Preparing to send email to ${targetCandidates.length} recipient(s).`,
           });
         }
-        
-        const body = encodeURIComponent(targetCandidates.length === 1 ? 
-          editableLetters[targetCandidates[0].id] || generatedLetter : 
-          generatedLetter
-        );
-        window.open(`mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${body}`);
-        
-        toast({
-          title: "Email client opened",
-          description: `Preparing to send email to ${targetCandidates.length} recipient(s).`,
-        });
       }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast({
+        variant: "destructive",
+        title: "Error sending email",
+        description: "There was a problem opening your email client. Please try again or copy the letter manually.",
+      });
     }
   };
 

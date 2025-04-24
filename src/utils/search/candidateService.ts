@@ -33,9 +33,21 @@ export const fetchSenateCandidates = async (states: string[]): Promise<any[]> =>
   return data || [];
 };
 
+const generateUniqueId = (prefix: string, candidate: any): string => {
+  const uniqueElements = [
+    prefix,
+    candidate.state,
+    candidate.ballotPosition,
+    candidate.surname,
+    candidate.ballotGivenName
+  ].filter(Boolean);
+  
+  return uniqueElements.join('-').toLowerCase().replace(/\s+/g, '-');
+};
+
 const formatHouseCandidates = (candidates: any[]) => {
   return candidates.map((candidate) => ({
-    id: `house-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
+    id: generateUniqueId('house', candidate),
     name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
     party: candidate.partyBallotName || 'Independent',
     email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",
@@ -47,7 +59,7 @@ const formatHouseCandidates = (candidates: any[]) => {
 
 const formatSenateCandidates = (candidates: any[]) => {
   return candidates.map((candidate) => ({
-    id: `senate-${candidate.ballotPosition || Math.random().toString(36).substring(2, 9)}`,
+    id: generateUniqueId('senate', candidate),
     name: `${candidate.ballotGivenName || ''} ${candidate.surname || ''}`.trim(),
     party: candidate.partyBallotName || 'Independent',
     email: candidate.email && candidate.email.trim() ? candidate.email.trim() : "contact@example.com",

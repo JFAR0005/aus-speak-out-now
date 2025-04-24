@@ -66,12 +66,21 @@ const Index = () => {
 
   // Candidate selection handler
   const handleToggleCandidate = (candidateId: string) => {
-    console.log('Index: Toggle candidate', {
+    const timestamp = new Date().toISOString();
+    
+    console.log('Index: Toggle candidate request', {
+      type: 'toggle-request',
       candidateId,
       currentSelection: selectedCandidates,
       action: selectedCandidates.includes(candidateId) ? 'remove' : 'add',
-      timestamp: new Date().toISOString()
+      timestamp
     });
+
+    // Validate the candidate ID format
+    if (!candidateId.includes('-')) {
+      console.error('Invalid candidate ID format', { candidateId });
+      return;
+    }
 
     setSelectedCandidates((prev) => {
       const isSelected = prev.includes(candidateId);
@@ -79,10 +88,12 @@ const Index = () => {
         ? prev.filter(id => id !== candidateId)
         : [...prev, candidateId];
       
-      console.log('Index: Updated selection', {
+      console.log('Index: Selection state updated', {
+        type: 'state-update',
         previous: prev,
         new: newSelection,
-        changed: candidateId
+        changed: candidateId,
+        timestamp
       });
       
       return newSelection;

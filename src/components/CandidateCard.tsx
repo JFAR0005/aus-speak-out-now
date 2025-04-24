@@ -24,16 +24,21 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 }) => {
   const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
     if (typeof checked === 'boolean') {
-      console.log('CandidateCard: Checkbox change', {
+      const timestamp = new Date().toISOString();
+      
+      console.log('CandidateCard: Selection event', {
+        type: 'checkbox-change',
         candidateId: candidate.id,
+        candidateName: candidate.name,
         chamber: candidate.chamber,
         currentState: isSelected,
         newState: checked,
-        selectionTime: new Date().toISOString()
+        timestamp
       });
+      
       onToggleSelect(candidate.id);
     }
-  }, [candidate.id, candidate.chamber, isSelected, onToggleSelect]);
+  }, [candidate, isSelected, onToggleSelect]);
 
   return (
     <Card className="relative border transition-all">

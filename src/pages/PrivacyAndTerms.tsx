@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ const PrivacyAndTerms = () => {
         <div className="prose prose-sm max-w-4xl mx-auto">
           <h1>Privacy Policy & Terms of Use</h1>
           
-          <h2>Terms of Use</h2>
+          <h2 id="terms">Terms of Use</h2>
           <p>
             By using this tool, you agree to these terms of use. This tool is provided for legitimate democratic engagement 
             and must be used responsibly and legally.
@@ -39,7 +38,7 @@ const PrivacyAndTerms = () => {
             <li>Mass campaigns must be conducted responsibly and ethically</li>
           </ul>
 
-          <h2>Privacy Policy</h2>
+          <h2 id="privacy">Privacy Policy</h2>
           
           <h3>Information Collection</h3>
           <p>

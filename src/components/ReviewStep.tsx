@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { generateLetters } from "../services/letterService";
+import { generateLetters, LetterGenerationOptions } from "../services/letterService";
+import { StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 
 interface ReviewStepProps {
   electorate: Electorate;
@@ -48,7 +48,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   onUpdateIndividualLetters,
   onPrevious,
 }) => {
-  // Initialize active tab and make sure it exists in selected candidates
   const [activeTab, setActiveTab] = useState<string>("");
   const [regenerateTone, setRegenerateTone] = useState("formal");
   const [isRegenerating, setIsRegenerating] = useState<Record<string, boolean>>({});
@@ -61,16 +60,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     selectedCandidates.includes(c.id)
   );
   
-  // Set initial state based on props - moved to useEffect to avoid render blocking
   useEffect(() => {
-    // Initialize editableLetters
     if (Object.keys(individualLetters).length > 0) {
       setEditableLetters(individualLetters);
     } else {
       setEditableLetters({ all: generatedLetter });
     }
     
-    // Initialize activeTab to either the first candidate or "all"
     setActiveTab(selectedCandidates[0] || "all");
   }, [individualLetters, generatedLetter, selectedCandidates]);
 
@@ -83,7 +79,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     if (candidateId === "all") {
       onEditLetter(newText);
     } else if (onUpdateIndividualLetters) {
-      // Use setTimeout to prevent UI blocking
       setTimeout(() => {
         const updatedLetters = { ...editableLetters, [candidateId]: newText };
         delete updatedLetters.all;
@@ -114,7 +109,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const handleCopyAllLetters = () => {
-    // Prepare text in a non-blocking way
     setTimeout(() => {
       const allLettersText = selectedCandidatesList
         .map(candidate => {
@@ -146,7 +140,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     if (candidateId && candidateId !== "all") {
       const candidate = selectedCandidatesList.find(c => c.id === candidateId);
       if (candidate) {
-        // Create a subject line based on content
         const letterText = editableLetters[candidateId] || "";
         const subjectMatch = letterText.match(/Re: (.*?)(?:\n|$)/);
         const subject = subjectMatch ? subjectMatch[1] : "Constituent Outreach: Your Attention Required";
@@ -160,7 +153,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         });
       }
     } else if (candidateId === "all") {
-      // Send to all candidates
       const emails = selectedCandidatesList.map((c) => c.email).join(";");
       const subject = "Constituent Outreach: Your Attention Required";
       const body = encodeURIComponent(generatedLetter);
@@ -171,23 +163,19 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         description: `Preparing to send email to all ${selectedCandidatesList.length} recipients.`,
       });
     } else {
-      // Use the current active tab
       handleSendEmail(activeTab);
     }
   };
 
   const handleRegenerateLetter = async (candidateId?: string) => {
-    // Set regenerating state for specific candidate
     setIsRegenerating(prev => ({
       ...prev,
       [candidateId || "all"]: true
     }));
     
     try {
-      // Get the original user concern from session storage
       const originalConcern = sessionStorage.getItem('userLetterConcern') || "important policy matters";
       
-      // Use setTimeout to prevent UI blocking
       setTimeout(async () => {
         try {
           if (candidateId && candidateId !== "all") {
@@ -195,9 +183,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             if (candidate) {
               const letters = await generateLetters(
                 [candidate],
-                originalConcern, // Use the original concern stored in session storage
-                null,
-                regenerateTone
+                {
+                  concern: originalConcern,
+                  tone: regenerateTone as ToneType
+                }
               );
               
               setEditableLetters(prev => ({
@@ -343,14 +332,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const hasIndividualLetters = Object.keys(individualLetters).length > 0 || selectedCandidatesList.length > 1;
 
-  // Ensure activeTab is valid
   useEffect(() => {
     if (activeTab && !selectedCandidates.includes(activeTab) && activeTab !== "all") {
       setActiveTab(selectedCandidates[0] || "all");
     }
   }, [selectedCandidates, activeTab]);
 
-  // Prevent rendering until we have a valid activeTab
   if (!activeTab) {
     return <div className="flex justify-center p-8">Loading letters...</div>;
   }

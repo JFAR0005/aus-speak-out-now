@@ -23,38 +23,51 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Handle checkbox change - create a handler that works with the Checkbox component
-  const handleCheckboxChange = () => {
-    onToggleSelect(candidate.id);
+  // Handle checkbox change - the checkbox directly calls the parent handler
+  const handleCheckboxChange = (checked: boolean | "indeterminate") => {
+    if (checked === true || checked === false) {
+      onToggleSelect(candidate.id);
+    }
   };
 
-  // For handling click on the card
+  // For handling click on the card - only select when the card itself is clicked
   const handleCardClick = (event: React.MouseEvent) => {
-    // Prevent the event from bubbling up to parent elements
-    event.stopPropagation();
+    // Get the actual target element that received the click
+    const target = event.target as HTMLElement;
     
-    // Only trigger if not clicking on a button, checkbox, or its label
-    if (!(event.target instanceof HTMLButtonElement) && 
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLLabelElement)) {
+    // Check if we clicked on interactive elements that should handle their own clicks
+    const isInteractive = 
+      target.tagName === 'BUTTON' || 
+      target.tagName === 'INPUT' || 
+      target.tagName === 'LABEL' ||
+      // Check parent elements to see if we clicked inside a button or other interactive element
+      target.closest('button') !== null ||
+      target.closest('input') !== null ||
+      target.closest('label') !== null;
+    
+    // Only proceed with selection if not clicking an interactive element
+    if (!isInteractive) {
+      event.preventDefault();
+      event.stopPropagation();
       onToggleSelect(candidate.id);
     }
   };
 
   return (
     <Card 
-      className={`transition-all cursor-pointer ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
-      onClick={handleCardClick}
+      className={`transition-all ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2" onClick={handleCardClick}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Checkbox
-              id={`select-${candidate.id}`}
-              checked={isSelected}
-              onCheckedChange={handleCheckboxChange}
-              className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                id={`select-${candidate.id}`}
+                checked={isSelected}
+                onCheckedChange={handleCheckboxChange}
+                className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
+              />
+            </div>
             <div className="flex flex-col">
               <h3 className="font-semibold text-lg">{candidate.name}</h3>
               <div className="flex items-center space-x-2">
@@ -100,7 +113,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="pb-2" onClick={handleCardClick}>
         {candidate.chamber === "house" && candidate.division && (
           <div className="text-sm mb-2">
             <span className="font-medium">Electorate:</span> {candidate.division}

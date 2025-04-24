@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Electorate, Candidate } from "../types";
@@ -23,13 +24,14 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
-  // Handler to toggle candidate selection - ensure we only toggle the specified candidate
+  // Handler to toggle candidate selection - simply pass the ID to parent
   const handleToggleCandidate = (candidateId: string) => {
-    // Directly call the parent handler with the specific candidate ID
+    console.log(`CandidatesStep: Toggle candidate ${candidateId}`);
+    // Call the parent handler with the specific candidate ID
     onSelectCandidate(candidateId);
   };
 
-  // Console log for debugging
+  // Debug log selected candidates
   console.log('Selected candidates:', selectedCandidates);
 
   return (

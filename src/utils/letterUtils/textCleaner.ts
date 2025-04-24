@@ -1,3 +1,4 @@
+
 // Clean, improve, and enhance input text with proper Australian English
 export const cleanInputText = (text: string): string => {
   // Australian spelling conversion dictionary
@@ -47,56 +48,21 @@ export const cleanInputText = (text: string): string => {
   // Capitalize first letter of sentences
   enhancedText = enhancedText.replace(/(^\w|\.[\s\n]\w)/g, letter => letter.toUpperCase());
   
-  // Don't return the enhanced text directly - we'll use it as a reference for paraphrasing
-  
-  // Extract key topics from the concern
-  const climateTerms = /climate|environment|carbon|warming|emission/i.test(enhancedText);
-  const healthTerms = /health|medicare|hospital|doctor/i.test(enhancedText);
-  const educationTerms = /education|school|university|student/i.test(enhancedText);
-  const indigenousTerms = /indig|aboriginal|first nation|native|torres/i.test(enhancedText);
-  const genderTerms = /gender|women|domestic|violence|equality/i.test(enhancedText);
-  const housingTerms = /hous|rent|afford|property|homeless/i.test(enhancedText);
-  const economyTerms = /econom|job|unemploy|wage|inflation|cost of living/i.test(enhancedText);
-  
-  // Paraphrase by topic instead of directly inserting the user text
-  if (climateTerms) {
-    return "the urgent need for meaningful climate action and environmental protection";
-  } else if (healthTerms) {
-    return "improving our healthcare system and ensuring accessible medical services for all Australians";
-  } else if (educationTerms) {
-    return "strengthening our education system and expanding opportunities for students across Australia";
-  } else if (indigenousTerms) {
-    return "advancing First Nations rights, recognition, and achieving meaningful reconciliation";
-  } else if (genderTerms) {
-    return "addressing gender equality and eliminating violence against women in our communities";
-  } else if (housingTerms) {
-    return "the housing affordability crisis and improving access to secure housing for all Australians";
-  } else if (economyTerms) {
-    return "economic policies that address cost of living pressures and ensure fair wages for workers";
-  } else {
-    // For other topics, create a more generalized paraphrase
-    const words = enhancedText.split(' ');
-    const keyWords = words.filter(word => word.length > 4).slice(0, 3);
-    
-    // Form a natural sounding phrase based on key words
-    if (keyWords.length > 0) {
-      return `the important issues surrounding ${keyWords.join(' ')} and their impact on our community`;
-    } else {
-      return "important policy matters that affect our community's wellbeing and future";
-    }
-  }
+  // Return the enhanced text directly for more authentic user voice
+  return enhancedText;
 };
 
-// New function to check grammar and phrasing quality
+// Check grammar and phrasing quality
 export const qualityCheck = (text: string): string => {
   // Ensure proper spacing for signature with Australian formatting
   let improvedText = text
-    // Add proper spacing for sign-off
-    .replace(/\b(Regards|Sincerely|Yours sincerely|Thank you)\b,?\s*([A-Z][a-z]+(\s+[A-Z][a-z]+)*)/gi, 
-      (match, signoff, name) => {
-        // Ensure there's a paragraph break before signoff, then signoff on its own line, then name
-        return `\n\n${signoff},\n\n${name}`;
-      });
+    // Add proper spacing for sign-off 
+    // This ensures "Yours sincerely," is on its own line with blank lines before and after
+    .replace(/(\w)(\s*\n\s*)(Yours sincerely,)(\s*\n\s*)(\w)/g, 
+      "$1\n\n$3\n\n$5");
+  
+  // Make sure "Yours sincerely," is followed by a line break if it's not already
+  improvedText = improvedText.replace(/(Yours sincerely,)(?!\n\n)/g, "$1\n\n");
   
   // Remove redundant phrases and improve clarity
   improvedText = improvedText
@@ -133,12 +99,30 @@ export const qualityCheck = (text: string): string => {
     .replace(/\blabor party\b/gi, 'Labor Party') // Australian spelling exception
     .replace(/\bhonor\b/gi, 'honour')
     .replace(/\brealize\b/gi, 'realise')
-    .replace(/\brecognize\b/gi, 'recognise');
+    .replace(/\brecognize\b/gi, 'recognise')
+    .replace(/\banalyze\b/gi, 'analyse')
+    .replace(/\bprioritize\b/gi, 'prioritise')
+    .replace(/\bmemorize\b/gi, 'memorise')
+    .replace(/\bauthorize\b/gi, 'authorise')
+    .replace(/\bcriticize\b/gi, 'criticise')
+    .replace(/\bfinaliz(e|ing)\b/gi, (match) => 
+      match.endsWith('e') ? 'finalise' : 'finalising')
+    .replace(/\bprogram(s?)\b/gi, (match) => 
+      match.endsWith('s') ? 'programmes' : 'programme')
+    .replace(/\bgray\b/gi, 'grey')
+    .replace(/\btire(d|s)?\b/gi, (match) => {
+      if (match === 'tire') return 'tyre';
+      if (match === 'tires') return 'tyres';
+      return match; // keep 'tired' as is
+    });
   
   // Fix any repetitive sentences
   const sentences = improvedText.split(/(?<=[.!?])\s+/);
   const uniqueSentences = Array.from(new Set(sentences));
   improvedText = uniqueSentences.join(' ');
+  
+  // Ensure proper paragraph breaks for readability
+  improvedText = improvedText.replace(/([.!?])\s+([A-Z])/g, "$1\n\n$2");
   
   return improvedText;
 };

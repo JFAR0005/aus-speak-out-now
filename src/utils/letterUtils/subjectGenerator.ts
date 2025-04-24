@@ -1,7 +1,16 @@
 
+// This file generates appropriate subject lines for constituent letters based on the concern topic
+
+/**
+ * Generates a contextual subject line for a letter based on the user's concern
+ * @param concern The user's concern or issue
+ * @returns Formatted subject line
+ */
 export const generateSubjectLine = (concern: string): string => {
+  // Extended topics dictionary with Australian federal election context
   const topics = {
     "climate": "Urgent Action Required on Climate Change and Environmental Policy",
+    "renewable": "Supporting Renewable Energy Transition and Jobs",
     "healthcare": "Healthcare Reform and Medicare Funding Priorities",
     "education": "Education Funding and Reform Initiatives",
     "housing": "Addressing the Housing Affordability Crisis",
@@ -10,13 +19,14 @@ export const generateSubjectLine = (concern: string): string => {
     "gender": "Gender Equality and Women's Rights in Australia",
     "violence": "Addressing Family and Gender-Based Violence",
     "indigenous": "First Nations Rights, Recognition, and Voice to Parliament",
+    "aboriginal": "Aboriginal and Torres Strait Islander Priorities",
     "disability": "Disability Support, NDIS Reform, and Inclusive Communities",
     "welfare": "Social Welfare, Income Support, and Inequality",
     "transport": "Public Transport Infrastructure and Sustainability",
     "energy": "Energy Policy, Renewables, and Future Planning",
     "mental": "Mental Health Support and Healthcare Integration",
     "agriculture": "Agricultural Policy and Regional Development",
-    "water": "Water Management and Environmental Protection",
+    "water": "Water Management and Murray-Darling Basin Protection",
     "employment": "Job Creation and Employment Security Measures",
     "taxation": "Tax Reform and Economic Fairness",
     "infrastructure": "Infrastructure Development and Community Planning",
@@ -31,6 +41,15 @@ export const generateSubjectLine = (concern: string): string => {
     "wage": "Wage Growth and Fair Work Conditions",
     "rental": "Affordable Housing and Rental Market Reform",
     "media": "Media Diversity and Public Broadcasting",
+    "gambling": "Gambling Reform and Harm Reduction Measures",
+    "lgbtq": "LGBTQIA+ Rights and Protections",
+    "refugee": "Refugee Policy and Humanitarian Programs",
+    "security": "National Security and Cybersecurity Concerns",
+    "small business": "Small Business Support and Regulatory Reform",
+    "youth": "Youth Services and Future Generations",
+    "animal": "Animal Welfare and Protection Standards",
+    "police": "Justice System Reform and Community Safety",
+    "data": "Digital Rights and Data Privacy Protections",
   };
   
   // Function to extract meaningful keywords from concern text

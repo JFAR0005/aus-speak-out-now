@@ -1,4 +1,3 @@
-
 // Clean, improve, and enhance input text with proper Australian English
 export const cleanInputText = (text: string): string => {
   // Australian spelling conversion dictionary
@@ -99,7 +98,7 @@ export const qualityCheck = (text: string): string => {
         return `\n\n${signoff},\n\n${name}`;
       });
   
-  // Remove redundant phrases
+  // Remove redundant phrases and improve clarity
   improvedText = improvedText
     .replace(/\b(issue|matter|concern)\b.*?\b\1\b/gi, '$1')
     .replace(/\b(important|significant|critical)\b.*?\b\1\b/gi, '$1')
@@ -108,7 +107,7 @@ export const qualityCheck = (text: string): string => {
     .replace(/I would like to express my views/gi, 'I believe')
     .replace(/please do not hesitate to/gi, 'please');
   
-  // Fix common grammar issues
+  // Fix common grammar issues and ensure Australian English
   improvedText = improvedText
     .replace(/\bin regards to\b/gi, 'regarding')
     .replace(/\bas per\b/gi, 'according to')
@@ -118,7 +117,11 @@ export const qualityCheck = (text: string): string => {
     .replace(/\bimpact on\b/gi, 'affect')
     .replace(/\butilise\b/gi, 'use')
     .replace(/\bprior to\b/gi, 'before')
-    .replace(/\bsubsequent to\b/gi, 'after');
+    .replace(/\bsubsequent to\b/gi, 'after')
+    .replace(/\bperiod of time\b/gi, 'period')
+    .replace(/\bin excess of\b/gi, 'more than')
+    .replace(/\bdespite the fact that\b/gi, 'although')
+    .replace(/\bin the event that\b/gi, 'if');
   
   // Ensure Australian English spelling
   improvedText = improvedText
@@ -139,4 +142,3 @@ export const qualityCheck = (text: string): string => {
   
   return improvedText;
 };
-

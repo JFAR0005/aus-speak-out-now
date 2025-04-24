@@ -1,3 +1,4 @@
+
 import { Candidate } from "../../types";
 import { formatDate } from "./dateFormatter";
 import { generateTitle } from "./titleGenerator";
@@ -43,49 +44,50 @@ export const generateLetterForCandidate = (
   const concernContext = cleanInputText(concern);
   const relevantStatistic = getRandomStatistic(concernContext);
   
-  // Generate appropriate opening based on tone
   let opening = '';
-  let body = '';
-  let questions = '';
+  let mainBody = '';
+  let closingParagraph = '';
   
+  // Generate contextual opening based on tone
   switch (tone) {
     case 'formal':
-      opening = `I am writing to you as a constituent to address ${concernContext}.`;
+      opening = `I am writing as a constituent regarding ${concernContext}.`;
       break;
     case 'passionate':
-      opening = `I am writing as a deeply concerned constituent regarding ${concernContext}.`;
+      opening = `I am writing to express my deep concern about ${concernContext}.`;
       break;
     case 'direct':
       opening = `I am writing to understand your position on ${concernContext}.`;
       break;
     case 'hopeful':
-      opening = `I am writing to discuss ${concernContext} and the potential for positive change.`;
+      opening = `I am writing to discuss how we can work together on ${concernContext}.`;
       break;
   }
   
-  // Format document insights if available
-  const insightsSection = documentInsights ? `${documentInsights}\n` : '';
+  // Add statistical evidence and personal context
+  mainBody = `${relevantStatistic}\n\nAs a ${roleDescription}${partyInfo}, your position on this matter is crucial for our community.`;
   
-  // Add relevant statistic
-  body = `${relevantStatistic}\n\nAs a ${roleDescription}${partyInfo}, your position on this issue is of great importance to constituents like myself.`;
+  if (documentInsights) {
+    mainBody += `\n\n${documentInsights}`;
+  }
   
-  // Generate questions based on tone
+  // Generate appropriate closing based on tone
   switch (tone) {
     case 'formal':
-      questions = `1. What specific policies or measures do you propose to address this issue?\n2. How will you ensure effective implementation if elected?\n3. What timeline do you envision for making meaningful progress?`;
+      closingParagraph = "I look forward to your detailed response on these matters.";
       break;
     case 'passionate':
-      questions = `1. What immediate actions will you take to address this urgent issue?\n2. How will you ensure community voices are heard in the decision-making process?\n3. Will you commit to making this a priority in your first term?`;
+      closingParagraph = "I urge you to take strong action on this critical issue.";
       break;
     case 'direct':
-      questions = `1. What is your specific position on this issue?\n2. What concrete steps will you take if elected?\n3. How will you measure and report on progress?`;
+      closingParagraph = "Please outline your specific plans to address these concerns.";
       break;
     case 'hopeful':
-      questions = `1. What positive changes do you envision for our community?\n2. How can constituents participate in shaping these solutions?\n3. What resources will you commit to this cause?`;
+      closingParagraph = "I believe together we can make meaningful progress on this issue.";
       break;
   }
   
-  // Assemble the letter with proper spacing and formatting
+  // Assemble the letter with proper spacing and Australian formatting
   let letterText = `${formattedUserDetails}
 ${formattedUserEmail}
 ${formattedUserPhone}
@@ -101,17 +103,15 @@ ${subject}
 
 ${opening}
 
-${insightsSection}${body}
+${mainBody}
 
-I would appreciate your response to the following questions:
-
-${questions}
-
-I look forward to your response.
+${closingParagraph}
 
 Yours sincerely,
 
 ${formattedUserDetails}`;
 
+  // Apply quality checks and Australian English fixes
   return qualityCheck(letterText);
 };
+

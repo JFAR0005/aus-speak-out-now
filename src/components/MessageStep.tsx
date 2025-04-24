@@ -1,33 +1,17 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { 
-  ChevronRight, 
-  ChevronLeft, 
-  Upload, 
-  Sparkles,
-  FileText,
-  AlertCircle,
-  MessageCircle
-} from "lucide-react";
-import { Electorate, Candidate } from "../types";
+import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { Electorate } from "../types";
 import { generateLetters, LetterGenerationOptions } from "../services/letterService";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Alert,
-  AlertDescription,
-} from "@/components/ui/alert";
 import UserDetailsForm from "./UserDetailsForm";
 import { useUserDetails } from "../hooks/useUserDetails";
 import { StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
+import FileUploadSection from "./message/FileUploadSection";
+import MessageOptions from "./message/MessageOptions";
+import TextInputField from "./message/TextInputField";
 
 interface MessageStepProps {
   electorate: Electorate;
@@ -59,8 +43,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [policyIdeas, setPolicyIdeas] = useState("");
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { userDetails, setUserDetails } = useUserDetails();
 
@@ -91,22 +73,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
     
     const reader = new FileReader();
     
-    const readTimeout = setTimeout(() => {
-      if (isProcessingFile) {
-        reader.abort();
-        setFileError("File processing timed out. The file might be too large or complex.");
-        setIsProcessingFile(false);
-        
-        toast({
-          variant: "destructive",
-          title: "Processing timeout",
-          description: "File processing took too long. Please try a smaller or simpler file.",
-        });
-      }
-    }, 10000);
-
     reader.onload = (e) => {
-      clearTimeout(readTimeout);
       try {
         const text = e.target?.result as string;
         const limitedText = text.substring(0, 20000);
@@ -131,7 +98,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
     };
     
     reader.onerror = () => {
-      clearTimeout(readTimeout);
       setFileError("There was an error reading the file.");
       setIsProcessingFile(false);
       
@@ -153,16 +119,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
     setUploadedFile(null);
     setFileContent(null);
     setFileError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleUserDetailsChange = (field: string, value: string) => {
-    setUserDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const handleGenerateLetter = async () => {
@@ -180,7 +136,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
     }
 
     setIsGenerating(true);
-    setGenerationProgress(0);
     
     try {
       const progressToast = toast({
@@ -212,7 +167,6 @@ const MessageStep: React.FC<MessageStepProps> = ({
           onGenerateMultipleLetters(letters);
         }
         
-        // Store options for potential regeneration
         sessionStorage.setItem('letterGenerationOptions', JSON.stringify({
           tone: letterTone,
           stance,
@@ -277,131 +231,48 @@ const MessageStep: React.FC<MessageStepProps> = ({
               lastName={userDetails.lastName}
               phone={userDetails.phone}
               email={userDetails.email}
-              onChange={handleUserDetailsChange}
+              onChange={setUserDetails}
             />
 
-            <div>
-              <label className="block mb-2 font-medium">
-                What issue or concern would you like to address?
-              </label>
-              <Textarea
-                placeholder="e.g., I'm concerned about climate change policies and their impact on..."
-                value={userConcern}
-                onChange={(e) => setUserConcern(e.target.value)}
-                className="min-h-[120px]"
-              />
-              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
-                <p className="font-medium mb-1">Example of a high-quality concern:</p>
-                <p>
-                  "I'm deeply concerned about the impact of climate change on our agricultural sector. 
-                  Recent CSIRO reports indicate that changing rainfall patterns and increasing temperatures 
-                  are already affecting crop yields in my region. As a resident of a farming community, 
-                  I'm particularly interested in policies that support sustainable farming practices and 
-                  help farmers adapt to these challenges."
-                </p>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Be specific about your concern. The AI will use your words to craft a personalized message.
-              </p>
-            </div>
+            <TextInputField
+              label="What issue or concern would you like to address?"
+              value={userConcern}
+              onChange={setUserConcern}
+              placeholder="e.g., I'm concerned about climate change policies and their impact on..."
+              example={{
+                title: "Example of a high-quality concern:",
+                content: "I'm deeply concerned about the impact of climate change on our agricultural sector. Recent CSIRO reports indicate that changing rainfall patterns and increasing temperatures are already affecting crop yields in my region. As a resident of a farming community, I'm particularly interested in policies that support sustainable farming practices and help farmers adapt to these challenges."
+              }}
+            />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-2 font-medium">
-                  Your stance on this issue
-                </label>
-                <Select 
-                  value={stance} 
-                  onValueChange={(value: StanceType) => setStance(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select your stance" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="support">Support</SelectItem>
-                    <SelectItem value="oppose">Oppose</SelectItem>
-                    <SelectItem value="neutral">Neutral</SelectItem>
-                    <SelectItem value="concerned">Concerned</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500 mt-1">
-                  This helps tailor your letter's tone and arguments
-                </p>
-              </div>
-              
-              <div>
-                <label className="block mb-2 font-medium">
-                  Letter tone
-                </label>
-                <Select 
-                  value={letterTone} 
-                  onValueChange={(value: ToneType) => setLetterTone(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select tone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="formal">Formal</SelectItem>
-                    <SelectItem value="passionate">Passionate</SelectItem>
-                    <SelectItem value="direct">Direct</SelectItem>
-                    <SelectItem value="hopeful">Hopeful</SelectItem>
-                    <SelectItem value="empathetic">Empathetic</SelectItem>
-                    <SelectItem value="optimistic">Optimistic</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Choose the tone for your letters - each will be uniquely written
-                </p>
-              </div>
-            </div>
+            <MessageOptions
+              stance={stance}
+              setStance={setStance}
+              letterTone={letterTone}
+              setLetterTone={setLetterTone}
+            />
             
-            <div>
-              <label className="block mb-2 font-medium">
-                Personal experience or context (optional)
-              </label>
-              <Textarea
-                placeholder="Share a personal story or experience related to this issue..."
-                value={personalExperience}
-                onChange={(e) => setPersonalExperience(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
-                <p className="font-medium mb-1">Example of impactful personal context:</p>
-                <p>
-                  "As a small business owner in the renewable energy sector, I've witnessed firsthand how 
-                  policy uncertainty affects investment decisions. Last year, we had to postpone hiring 
-                  three new employees because of unclear renewable energy targets. This directly impacts 
-                  local job creation and our ability to contribute to the clean energy transition."
-                </p>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Adding personal context makes your letter more impactful
-              </p>
-            </div>
+            <TextInputField
+              label="Personal experience or context (optional)"
+              value={personalExperience}
+              onChange={setPersonalExperience}
+              placeholder="Share a personal story or experience related to this issue..."
+              example={{
+                title: "Example of impactful personal context:",
+                content: "As a small business owner in the renewable energy sector, I've witnessed firsthand how policy uncertainty affects investment decisions. Last year, we had to postpone hiring three new employees because of unclear renewable energy targets. This directly impacts local job creation and our ability to contribute to the clean energy transition."
+              }}
+            />
             
-            <div>
-              <label className="block mb-2 font-medium">
-                Policy suggestions (optional)
-              </label>
-              <Textarea
-                placeholder="Suggest specific policy ideas you'd like the candidate to consider..."
-                value={policyIdeas}
-                onChange={(e) => setPolicyIdeas(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <div className="mt-2 p-3 bg-muted rounded-md text-xs text-muted-foreground">
-                <p className="font-medium mb-1">Example of well-structured policy suggestions:</p>
-                <p>
-                  "1. Implement a 5-year tax incentive for businesses investing in renewable energy infrastructure
-                  2. Create a national framework for standardizing building energy efficiency requirements
-                  3. Establish a dedicated fund for supporting research into drought-resistant crop varieties
-                  4. Develop clear guidelines for carbon credit trading to benefit agricultural communities"
-                </p>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Include specific policy ideas you'd like the candidate to consider
-              </p>
-            </div>
+            <TextInputField
+              label="Policy suggestions (optional)"
+              value={policyIdeas}
+              onChange={setPolicyIdeas}
+              placeholder="Suggest specific policy ideas you'd like the candidate to consider..."
+              example={{
+                title: "Example of well-structured policy suggestions:",
+                content: "1. Implement a 5-year tax incentive for businesses investing in renewable energy infrastructure\n2. Create a national framework for standardizing building energy efficiency requirements\n3. Establish a dedicated fund for supporting research into drought-resistant crop varieties\n4. Develop clear guidelines for carbon credit trading to benefit agricultural communities"
+              }}
+            />
 
             <div className="flex items-center">
               <div className="flex-grow">
@@ -413,76 +284,13 @@ const MessageStep: React.FC<MessageStepProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="block mb-2 font-medium">
-                Upload a document with facts or evidence
-              </label>
-              <div className="flex items-center">
-                <Button
-                  variant="outline"
-                  className="relative overflow-hidden"
-                  type="button"
-                  disabled={isProcessingFile}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={handleFileUpload}
-                    disabled={isProcessingFile}
-                  />
-                  <Upload className="mr-2 h-4 w-4" /> {isProcessingFile ? "Processing..." : "Choose File"}
-                </Button>
-                {uploadedFile ? (
-                  <div className="flex items-center ml-3">
-                    <FileText className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-700">{uploadedFile.name}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={clearFile} 
-                      className="ml-2 h-6 p-0 text-xs text-gray-500"
-                      disabled={isProcessingFile}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="ml-3 text-sm text-gray-500">
-                    No file chosen
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Supported formats: PDF, DOC, DOCX, TXT (max 5MB). Attach documents to include stats or key points.
-              </p>
-              
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                <div className="flex gap-2 items-start">
-                  <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
-                  <p className="text-xs text-amber-700">
-                    We'll include information based on your upload, but please fact-check for accuracy before sending.
-                    Any statistics or key points extracted will be incorporated into your letter where relevant.
-                  </p>
-                </div>
-              </div>
-              
-              {fileError && (
-                <Alert variant="destructive" className="mt-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{fileError}</AlertDescription>
-                </Alert>
-              )}
-              
-              {fileContent && !fileError && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                  <p className="text-xs text-green-600">
-                    <span className="font-semibold">✓ Content extracted</span> - insights from this document will be used in your letters
-                  </p>
-                </div>
-              )}
-            </div>
+            <FileUploadSection
+              isProcessingFile={isProcessingFile}
+              uploadedFile={uploadedFile}
+              fileError={fileError}
+              onFileUpload={handleFileUpload}
+              onClearFile={clearFile}
+            />
           </div>
         </div>
 

@@ -24,17 +24,24 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 }) => {
   const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
     if (typeof checked === 'boolean') {
-      console.log(`CandidateCard: Direct checkbox interaction for ${candidate.name}. New state:`, checked);
+      console.log(`CandidateCard: Checkbox change event for ${candidate.name}`, {
+        checked,
+        currentId: candidate.id,
+        currentState: isSelected
+      });
+      
+      // Stop any potential event bubbling
       onToggleSelect(candidate.id);
     }
-  }, [candidate.id, candidate.name, onToggleSelect]);
+  }, [candidate.id, candidate.name, onToggleSelect, isSelected]);
 
   return (
-    <Card className={`relative transition-all pointer-events-none ${isSelected ? "border-aus-green ring-1 ring-aus-green" : ""}`}>
+    <Card className="relative border transition-all pointer-events-none">
+      <div className={`absolute inset-0 transition-opacity ${isSelected ? "border-2 border-aus-green ring-1 ring-aus-green" : "border-transparent"}`} />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="pointer-events-auto">
+            <div className="relative pointer-events-auto z-10">
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}

@@ -71,7 +71,8 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
                          candidate.party.includes("LNP") || 
                          candidate.party === "Liberal")
                       ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                      : candidate.party === "Australian Greens"
+                      : (candidate.party === "Australian Greens" ||
+                         candidate.party.toLowerCase().includes("greens"))
                       ? "bg-green-100 text-green-800 hover:bg-green-100"
                       : candidate.party === "The Nationals"
                       ? "bg-darkgreen-100 text-darkgreen-800 hover:bg-darkgreen-100"

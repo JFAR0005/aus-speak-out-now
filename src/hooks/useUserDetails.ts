@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 
-interface UserDetails {
+export interface UserDetails {
   firstName: string;
   lastName: string;
   phone: string;
@@ -34,5 +34,12 @@ export const useUserDetails = () => {
     }
   }, [userDetails]);
 
-  return { userDetails, setUserDetails };
+  const updateUserDetail = (field: string, value: string) => {
+    setUserDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  return { userDetails, setUserDetails, updateUserDetail };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -44,7 +43,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { userDetails, setUserDetails } = useUserDetails();
+  const { userDetails, updateUserDetail } = useUserDetails();
 
   const selectedCandidatesList = electorate.candidates.filter(c => 
     selectedCandidates.includes(c.id)
@@ -231,7 +230,7 @@ const MessageStep: React.FC<MessageStepProps> = ({
               lastName={userDetails.lastName}
               phone={userDetails.phone}
               email={userDetails.email}
-              onChange={setUserDetails}
+              onChange={updateUserDetail}
             />
 
             <TextInputField

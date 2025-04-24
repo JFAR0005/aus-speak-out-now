@@ -35,7 +35,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
             >
               <div
                 className={`flex items-center justify-center ${
-                  isMobile ? "w-8 h-8" : "w-10 h-10"
+                  isMobile ? "w-7 h-7" : "w-10 h-10"
                 } rounded-full border-2 transition-all ${
                   isActive
                     ? "step-active"
@@ -45,24 +45,32 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
                 }`}
               >
                 {isCompleted ? (
-                  <Check className={`${isMobile ? "h-4 w-4" : "h-5 w-5"}`} />
+                  <Check className={`${isMobile ? "h-3 w-3" : "h-5 w-5"}`} />
                 ) : (
-                  <span className={isMobile ? "text-sm" : ""}>{index + 1}</span>
+                  <span className={isMobile ? "text-xs" : ""}>{index + 1}</span>
                 )}
               </div>
-              <span
-                className={`mt-2 ${
-                  isMobile
-                    ? "text-[10px] max-w-[60px]"
-                    : "text-xs"
-                } text-center transition-colors ${
-                  isActive || isCompleted
-                    ? "text-aus-green font-medium"
-                    : "text-gray-500"
-                }`}
-              >
-                {step}
-              </span>
+              {isMobile ? (
+                <span
+                  className={`mt-2 text-[9px] max-w-[50px] text-center transition-colors ${
+                    isActive || isCompleted
+                      ? "text-aus-green font-medium"
+                      : "text-gray-500"
+                  } line-clamp-2`}
+                >
+                  {step}
+                </span>
+              ) : (
+                <span
+                  className={`mt-2 text-xs text-center transition-colors ${
+                    isActive || isCompleted
+                      ? "text-aus-green font-medium"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {step}
+                </span>
+              )}
             </div>
           );
         })}
@@ -72,4 +80,3 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
 };
 
 export default StepIndicator;
-

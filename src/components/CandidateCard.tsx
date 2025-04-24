@@ -23,10 +23,10 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  // Handle checkbox change - only trigger selection when checkbox is directly clicked
+  // Create a specific handler just for the checkbox click
   const handleCheckboxChange = (checked: boolean | "indeterminate") => {
     if (checked === true || checked === false) {
-      console.log(`Checkbox clicked for ${candidate.name}`);
+      console.log(`Checkbox clicked for ${candidate.name} (${candidate.id})`);
       onToggleSelect(candidate.id);
     }
   };
@@ -36,7 +36,14 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div onClick={(e) => e.stopPropagation()}>
+            {/* Important: Isolate the checkbox in its own click handler container */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                // Don't do anything else here - let the checkbox component handle it
+              }}
+              className="relative z-10"
+            >
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}

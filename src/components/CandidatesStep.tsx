@@ -24,15 +24,17 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const houseRepresentatives = electorate.candidates.filter(c => c.chamber === "house");
   const senateCandidates = electorate.candidates.filter(c => c.chamber === "senate");
 
-  // Handler to toggle candidate selection - simply pass the ID to parent
+  // Handler to toggle candidate selection with better logging
   const handleToggleCandidate = (candidateId: string) => {
-    console.log(`CandidatesStep: Toggle candidate ${candidateId}`);
+    console.log(`CandidatesStep: Toggling SINGLE candidate ${candidateId}`);
+    console.log('Current selected:', selectedCandidates);
+    
     // Call the parent handler with the specific candidate ID
     onSelectCandidate(candidateId);
   };
 
   // Debug log selected candidates
-  console.log('Selected candidates:', selectedCandidates);
+  console.log('CandidatesStep: All currently selected candidates:', selectedCandidates);
 
   return (
     <div className="w-full max-w-3xl mx-auto">

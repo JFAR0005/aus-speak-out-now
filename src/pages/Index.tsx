@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -67,15 +66,26 @@ const Index = () => {
 
   // Candidate selection handler
   const handleToggleCandidate = (candidateId: string) => {
+    console.log('Index: Toggle candidate', {
+      candidateId,
+      currentSelection: selectedCandidates,
+      action: selectedCandidates.includes(candidateId) ? 'remove' : 'add',
+      timestamp: new Date().toISOString()
+    });
+
     setSelectedCandidates((prev) => {
-      // Check if the candidate is already selected
-      if (prev.includes(candidateId)) {
-        // If selected, remove it from the array
-        return prev.filter((id) => id !== candidateId);
-      } else {
-        // If not selected, add it to the array
-        return [...prev, candidateId];
-      }
+      const isSelected = prev.includes(candidateId);
+      const newSelection = isSelected
+        ? prev.filter(id => id !== candidateId)
+        : [...prev, candidateId];
+      
+      console.log('Index: Updated selection', {
+        previous: prev,
+        new: newSelection,
+        changed: candidateId
+      });
+      
+      return newSelection;
     });
   };
 

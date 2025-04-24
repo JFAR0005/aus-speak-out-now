@@ -25,14 +25,15 @@ const CandidatesStep: React.FC<CandidatesStepProps> = ({
   const handleToggleCandidate = useCallback((candidateId: string) => {
     console.log('CandidatesStep: Processing selection', {
       candidateId,
+      chamber: electorate.candidates.find(c => c.id === candidateId)?.chamber,
       currentlySelected: selectedCandidates,
       willBeSelected: !selectedCandidates.includes(candidateId),
       totalSelected: selectedCandidates.length,
-      selectedCandidatesState: [...selectedCandidates]
+      selectionTime: new Date().toISOString()
     });
     
     onSelectCandidate(candidateId);
-  }, [selectedCandidates, onSelectCandidate]);
+  }, [electorate.candidates, selectedCandidates, onSelectCandidate]);
 
   return (
     <div className="w-full max-w-3xl mx-auto">

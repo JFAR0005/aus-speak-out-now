@@ -22,24 +22,21 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   isSelected,
   onToggleSelect,
 }) => {
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('CandidateCard: Click handler', {
-      candidateId: candidate.id,
-      chamber: candidate.chamber,
-      currentState: isSelected
-    });
-    
-    onToggleSelect(candidate.id);
+  const handleCheckboxChange = useCallback((checked: boolean | "indeterminate") => {
+    if (typeof checked === 'boolean') {
+      console.log('CandidateCard: Checkbox change', {
+        candidateId: candidate.id,
+        chamber: candidate.chamber,
+        currentState: isSelected,
+        newState: checked,
+        selectionTime: new Date().toISOString()
+      });
+      onToggleSelect(candidate.id);
+    }
   }, [candidate.id, candidate.chamber, isSelected, onToggleSelect]);
 
   return (
-    <Card 
-      className="relative border transition-all"
-      onClick={handleClick}
-    >
+    <Card className="relative border transition-all">
       <div 
         className={`absolute inset-0 transition-opacity pointer-events-none ${
           isSelected ? "border-2 border-aus-green ring-1 ring-aus-green" : "border-transparent"
@@ -48,24 +45,11 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div 
-              className="relative z-10"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative z-10">
               <Checkbox
                 id={`select-${candidate.id}`}
                 checked={isSelected}
-                onCheckedChange={(checked) => {
-                  if (typeof checked === 'boolean') {
-                    console.log('CandidateCard: Checkbox change', {
-                      candidateId: candidate.id,
-                      chamber: candidate.chamber,
-                      currentState: isSelected,
-                      newState: checked
-                    });
-                    onToggleSelect(candidate.id);
-                  }
-                }}
+                onCheckedChange={handleCheckboxChange}
                 className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
               />
             </div>

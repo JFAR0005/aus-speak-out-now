@@ -14,10 +14,10 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
   return (
     <div className="w-full py-4">
       <div className="flex justify-between relative">
-        {/* Progress bar */}
-        <div className="absolute top-1/2 left-0 h-1 bg-gray-200 w-full -translate-y-1/2 z-0"></div>
+        {/* Progress bar - adjusted positioning */}
+        <div className="absolute top-[15px] left-0 h-1 bg-gray-200 w-full z-0"></div>
         <div
-          className="absolute top-1/2 left-0 h-1 bg-aus-green transition-all z-0"
+          className="absolute top-[15px] left-0 h-1 bg-aus-green transition-all z-0"
           style={{
             width: `${(Math.max(0, currentStep - 1) / (steps.length - 1)) * 100}%`,
           }}
@@ -35,7 +35,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
             >
               <div
                 className={`flex items-center justify-center ${
-                  isMobile ? "w-7 h-7" : "w-10 h-10"
+                  isMobile ? "w-7 h-7" : "w-8 h-8"
                 } rounded-full border-2 transition-all ${
                   isActive
                     ? "step-active"
@@ -45,9 +45,9 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps }) => 
                 }`}
               >
                 {isCompleted ? (
-                  <Check className={`${isMobile ? "h-3 w-3" : "h-5 w-5"}`} />
+                  <Check className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
                 ) : (
-                  <span className={isMobile ? "text-xs" : ""}>{index + 1}</span>
+                  <span className={isMobile ? "text-xs" : "text-sm"}>{index + 1}</span>
                 )}
               </div>
               {isMobile ? (

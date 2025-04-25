@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Candidate } from "../types";
@@ -49,55 +48,53 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         }`} 
       />
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative z-10">
-              <Checkbox
-                id={`select-${candidate.id}`}
-                checked={isSelected}
-                onCheckedChange={handleCheckboxChange}
-                className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
-              />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="font-semibold text-lg">{candidate.name}</h3>
-              <div className="flex items-center space-x-2">
-                <Badge 
-                  variant="outline" 
-                  className={`w-fit ${
-                    candidate.party === "Australian Labor Party" 
-                      ? "bg-red-100 text-red-800 hover:bg-red-100" 
-                      : (candidate.party === "Liberal Party of Australia" || 
-                         candidate.party.includes("LNP") || 
-                         candidate.party === "Liberal")
-                      ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                      : (candidate.party === "Australian Greens" ||
-                         candidate.party.toLowerCase().includes("greens"))
-                      ? "bg-green-100 text-green-800 hover:bg-green-100"
-                      : candidate.party === "The Nationals"
-                      ? "bg-darkgreen-100 text-darkgreen-800 hover:bg-darkgreen-100"
-                      : candidate.party === "Country Liberal Party"
-                      ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                  }`}
-                >
-                  {candidate.party}
-                </Badge>
-                <Badge 
-                  variant="outline" 
-                  className="bg-slate-100 text-slate-800"
-                >
-                  {candidate.chamber === "house" ? (
-                    <div className="flex items-center">
-                      <UserRound className="h-3 w-3 mr-1" /> House
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <Users className="h-3 w-3 mr-1" /> Senate
-                    </div>
-                  )}
-                </Badge>
-              </div>
+        <div className="flex items-start gap-3">
+          <div className="relative z-10 pt-1">
+            <Checkbox
+              id={`select-${candidate.id}`}
+              checked={isSelected}
+              onCheckedChange={handleCheckboxChange}
+              className="h-5 w-5 data-[state=checked]:bg-aus-green data-[state=checked]:border-aus-green"
+            />
+          </div>
+          <div className="flex-1 space-y-2">
+            <h3 className="font-semibold text-lg">{candidate.name}</h3>
+            <div className="flex flex-col gap-2">
+              <Badge 
+                variant="outline" 
+                className={`w-fit ${
+                  candidate.party === "Australian Labor Party" 
+                    ? "bg-red-100 text-red-800 hover:bg-red-100" 
+                    : (candidate.party === "Liberal Party of Australia" || 
+                       candidate.party.includes("LNP") || 
+                       candidate.party === "Liberal")
+                    ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                    : (candidate.party === "Australian Greens" ||
+                       candidate.party.toLowerCase().includes("greens"))
+                    ? "bg-green-100 text-green-800 hover:bg-green-100"
+                    : candidate.party === "The Nationals"
+                    ? "bg-darkgreen-100 text-darkgreen-800 hover:bg-darkgreen-100"
+                    : candidate.party === "Country Liberal Party"
+                    ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                }`}
+              >
+                {candidate.party}
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className="w-fit bg-slate-100 text-slate-800"
+              >
+                {candidate.chamber === "house" ? (
+                  <div className="flex items-center">
+                    <UserRound className="h-3 w-3 mr-1" /> House
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <Users className="h-3 w-3 mr-1" /> Senate
+                  </div>
+                )}
+              </Badge>
             </div>
           </div>
           {candidate.imageUrl && (
@@ -111,7 +108,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="pb-2 pt-0">
         {candidate.chamber === "house" && candidate.division && (
           <div className="text-sm mb-2">
             <span className="font-medium">Electorate:</span> {candidate.division}
@@ -166,4 +163,3 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 };
 
 export default CandidateCard;
-

@@ -39,6 +39,39 @@ export type Database = {
         }
         Relationships: []
       }
+      letter_generation_logs: {
+        Row: {
+          chamber_type: string
+          concern_topic: string | null
+          electorate: string
+          id: string
+          num_candidates: number
+          stance: string | null
+          timestamp: string
+          tone: string | null
+        }
+        Insert: {
+          chamber_type: string
+          concern_topic?: string | null
+          electorate: string
+          id?: string
+          num_candidates: number
+          stance?: string | null
+          timestamp?: string
+          tone?: string | null
+        }
+        Update: {
+          chamber_type?: string
+          concern_topic?: string | null
+          electorate?: string
+          id?: string
+          num_candidates?: number
+          stance?: string | null
+          timestamp?: string
+          tone?: string | null
+        }
+        Relationships: []
+      }
       letter_submissions: {
         Row: {
           concern: string
@@ -85,27 +118,6 @@ export type Database = {
         Relationships: []
       }
       postcode_mappings: {
-        Row: {
-          electorate: string
-          locality: string | null
-          postcode: number
-          state: string
-        }
-        Insert: {
-          electorate: string
-          locality?: string | null
-          postcode: number
-          state: string
-        }
-        Update: {
-          electorate?: string
-          locality?: string | null
-          postcode?: number
-          state?: string
-        }
-        Relationships: []
-      }
-      postcode_mappings_duplicate: {
         Row: {
           electorate: string
           locality: string | null

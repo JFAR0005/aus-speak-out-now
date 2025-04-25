@@ -1,8 +1,8 @@
-
 import { Candidate } from "../types";
 import { generateLetterForCandidate, generateLetterWithLegacyParams, StanceType, ToneType } from "../utils/letterUtils/letterGenerator";
 import { extractDocumentInsights } from "../utils/letterUtils/documentProcessor";
 import { qualityCheck } from "../utils/letterUtils/textCleaner";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface LetterGenerationOptions {
   concern: string;
@@ -18,6 +18,30 @@ export interface LetterGenerationOptions {
     email: string;
   };
 }
+
+const logLetterGeneration = async (
+  chamberType: string,
+  electorate: string,
+  numCandidates: number,
+  concern?: string,
+  tone?: ToneType,
+  stance?: StanceType
+) => {
+  try {
+    await supabase
+      .from('letter_generation_logs')
+      .insert({
+        chamber_type: chamberType,
+        electorate: electorate,
+        num_candidates: numCandidates,
+        concern_topic: concern,
+        tone: tone,
+        stance: stance
+      });
+  } catch (error) {
+    console.error('Error logging letter generation:', error);
+  }
+};
 
 export const generateLetters = async (
   candidates: Candidate[],
@@ -36,10 +60,7 @@ export const generateLetters = async (
   let processedConcern = concern;
   let documentInsights = '';
   
-  // If we're getting a placeholder like "your previous concern", use a meaningful default
-  // This prevents generic empty letters during regeneration
   if (concern === "your previous concern" || !concern.trim()) {
-    // Check if we have a stored concern in sessionStorage
     const storedConcern = sessionStorage.getItem('userLetterConcern');
     if (storedConcern) {
       processedConcern = storedConcern;
@@ -48,16 +69,24 @@ export const generateLetters = async (
       processedConcern = "important policy matters affecting our community";
     }
   } else {
-    // Store valid concerns for future regenerations
     sessionStorage.setItem('userLetterConcern', processedConcern);
     console.log("Stored user concern:", processedConcern);
   }
   
   try {
-    // Process document insights first, with better error handling
+    if (candidates.length > 0) {
+      await logLetterGeneration(
+        candidates[0].chamber || 'unknown',
+        candidates[0].electorate || 'unknown',
+        candidates.length,
+        processedConcern,
+        tone,
+        stance
+      );
+    }
+    
     if (uploadedContent) {
       try {
-        // Process document insights without referencing the file directly
         documentInsights = extractDocumentInsights(uploadedContent, processedConcern);
         console.log("Document insights extracted:", documentInsights ? "Yes" : "No");
       } catch (error) {
@@ -79,7 +108,6 @@ export const generateLetters = async (
             
             for (const candidate of batch) {
               try {
-                // Use the new letter generator with full options
                 let generatedLetter = generateLetterForCandidate(
                   candidate,
                   {
@@ -93,14 +121,12 @@ export const generateLetters = async (
                   }
                 );
                 
-                // Apply quality check and Australian English fixes
                 generatedLetter = qualityCheck(generatedLetter);
                 
                 letters[candidate.id] = generatedLetter;
               } catch (err) {
                 console.error(`Error generating letter for ${candidate.name}:`, err);
                 
-                // Fallback to legacy method if needed
                 try {
                   const fallbackLetter = generateLetterWithLegacyParams(
                     candidate,
@@ -131,7 +157,6 @@ export const generateLetters = async (
   }
 };
 
-// For backward compatibility
 export const generateLetter = async (
   candidates: Candidate[],
   concern: string,
